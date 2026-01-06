@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/view/sales_person/leads/leads.dart';
 import 'package:sahelmed_app/view/sales_person/quotation/quotation_page.dart';
 
 class SalesPersonHomepage extends StatefulWidget {
@@ -235,12 +236,13 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   color: Colors.purple,
                   onTap: () {
                     // Navigate to Leads page
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(builder: (context) => LeadsPage()),
-                    // );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Leadspage()),
+                    );
                   },
                 ),
+
                 _buildEnhancedMenuItem(
                   icon: Icons.location_on,
                   title: 'Check-In',
