@@ -5,6 +5,7 @@ class AppColors {
 
   // Brand Colors
   static const Color primary = Color(0xFF1E88E5);
+  static const Color primaryColor = Color(0xFF1E88E5); // Alias for primary
   static const Color darkNavy = Color(0xFF0F172A);
   static const Color error = Color(0xFFD32F2F);
 

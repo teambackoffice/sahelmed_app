@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/view/sales_person/quotation/quotation_page.dart';
 
 class SalesPersonHomepage extends StatefulWidget {
   const SalesPersonHomepage({super.key});
@@ -221,12 +222,10 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   color: Colors.orange,
                   onTap: () {
                     // Navigate to Quotation page
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => QuotationPage(),
-                    //   ),
-                    // );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => QuotationPage()),
+                    );
                   },
                 ),
                 _buildEnhancedMenuItem(
