@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/view/login_page.dart';
+import 'package:sahelmed_app/view/sales_engineer/homepage_se.dart';
 import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
 
 void main() {
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SahelMed',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const SalesPersonHomepage(),
+      home: const SalesEngineerHomepage(),
     );
   }
 }
