@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sahelmed_app/view/service_engineer/machine_certificate/create_machine_certificate.dart';
+import 'package:sahelmed_app/view/service_engineer/material_request/create_material_request.dart';
 
 class MaintenanceVisitDetail extends StatefulWidget {
   final Map<String, dynamic> visit;
@@ -381,10 +383,22 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
             onSelected: (value) {
               switch (value) {
                 case 'certificate':
-                  // Handle Create Machine Certificate
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CreateMachineCertificate(), // Your page here
+                    ),
+                  );
                   break;
                 case 'material':
-                  // Handle Create Material Request
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CreateMaterialRequest(), // Your page here
+                    ),
+                  );
                   break;
               }
             },
