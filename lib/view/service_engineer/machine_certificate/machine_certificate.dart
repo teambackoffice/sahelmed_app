@@ -36,6 +36,14 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
       'date': '2025-01-19', // Today's date for testing
       'validity': '2025-12-31',
     },
+    {
+      'customer_name': 'City Hospital',
+      'machine_name': 'MRI Scanner',
+      'service_type': 'AMC',
+      'visit_reference': 'VST-2024-003',
+      'date': '2026-01-19', // Today's date for testing
+      'validity': '2025-12-31',
+    },
   ];
 
   bool isLoading = false;
@@ -111,24 +119,8 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
               'Service Certificates',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            Text(
-              'Machine maintenance records',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
-                color: Colors.grey,
-              ),
-            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: fetchCertificates,
-            tooltip: 'Refresh',
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Column(
         children: [
