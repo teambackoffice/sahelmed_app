@@ -369,7 +369,124 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
             color: Color(0xFF2C3E50),
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            color: Colors.white,
+            icon: const Icon(Icons.more_vert, color: Color(0xFF2C3E50)),
+            offset: const Offset(0, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 8,
+            onSelected: (value) {
+              switch (value) {
+                case 'certificate':
+                  // Handle Create Machine Certificate
+                  break;
+                case 'material':
+                  // Handle Create Material Request
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'certificate',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(
+                          0xFFE74C3C,
+                        ).withOpacity(0.1), // Change background color here
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.description_outlined,
+                        color: Color(0xFFE74C3C), // Change icon color here
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Machine Certificate',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(
+                                0xFF2C3E50,
+                              ), // Change title text color here
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Create certificate',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(
+                                0xFF95A5A6,
+                              ), // Change subtitle text color here
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem(
+                value: 'material',
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF27AE60).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.inventory_2_outlined,
+                        color: Color(0xFF27AE60),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Material Request',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2C3E50),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Material Requests',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF7F8C8D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
+
       body: Stack(
         children: [
           SingleChildScrollView(
