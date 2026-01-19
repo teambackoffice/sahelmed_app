@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/view/service_engineer/machine_certificate/machine_certificate.dart';
 import 'package:sahelmed_app/view/service_engineer/maintenance_visit/maintenance_visit.dart';
 import 'package:sahelmed_app/view/service_engineer/material_request/material_request.dart';
 
@@ -181,6 +182,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                       color: Colors.white,
                     ),
                   ),
+
                   SizedBox(height: 12),
                   Text(
                     'Track your service performance',
@@ -214,7 +216,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
               crossAxisCount: 2,
               crossAxisSpacing: 15,
               mainAxisSpacing: 15,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.0,
               children: [
                 _buildEnhancedMenuItem(
                   icon: Icons.description_outlined,
@@ -242,6 +244,21 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => MaterialRequestList(),
+                      ),
+                    );
+                  },
+                ),
+                _buildEnhancedMenuItem(
+                  icon: Icons.workspace_premium_outlined,
+                  title: 'Machine Service Certificate',
+                  subtitle: '',
+                  color: Colors.orange,
+                  onTap: () {
+                    // Navigate to Quotation page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MachineServiceCertificate(),
                       ),
                     );
                   },
@@ -290,7 +307,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
               ),
               child: Icon(icon, color: color, size: 28),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 25),
             Text(
               title,
               style: TextStyle(
@@ -299,11 +316,13 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-            ),
+            if (subtitle.isNotEmpty) ...[
+              SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              ),
+            ],
           ],
         ),
       ),
