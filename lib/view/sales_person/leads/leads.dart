@@ -163,7 +163,6 @@ class Leadspage extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  // Unique Element: Icon Box instead of Circle Avatar
                   Container(
                     width: 50,
                     height: 50,
@@ -171,15 +170,10 @@ class Leadspage extends StatelessWidget {
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(
-                      _sourceIcon(lead.source),
-                      color: color,
-                      size: 24,
-                    ),
+                    child: Icon(Icons.language, color: color, size: 24),
                   ),
                   const SizedBox(width: 16),
 
-                  // Content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

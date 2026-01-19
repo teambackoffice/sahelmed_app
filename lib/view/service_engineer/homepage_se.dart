@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
-import 'package:sahelmed_app/view/sales_engineer/maintenance_visit/maintenance_visit.dart';
+import 'package:sahelmed_app/view/service_engineer/maintenance_visit/maintenance_visit.dart';
+import 'package:sahelmed_app/view/service_engineer/material_request/material_request.dart';
 
-class SalesEngineerHomepage extends StatefulWidget {
-  const SalesEngineerHomepage({super.key});
+class ServiceEngineerHomepage extends StatefulWidget {
+  const ServiceEngineerHomepage({super.key});
 
   @override
-  State<SalesEngineerHomepage> createState() => _SalesEngineerHomepageState();
+  State<ServiceEngineerHomepage> createState() =>
+      _ServiceEngineerHomepageState();
 }
 
-class _SalesEngineerHomepageState extends State<SalesEngineerHomepage> {
+class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
   String fullName = '';
 
   @override
@@ -225,6 +227,21 @@ class _SalesEngineerHomepageState extends State<SalesEngineerHomepage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => MaintenanceVisit(),
+                      ),
+                    );
+                  },
+                ),
+                _buildEnhancedMenuItem(
+                  icon: Icons.shopping_cart,
+                  title: 'Material Request',
+                  subtitle: '',
+                  color: Colors.orange,
+                  onTap: () {
+                    // Navigate to Quotation page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MaterialRequestList(),
                       ),
                     );
                   },

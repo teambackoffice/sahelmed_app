@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
-import 'package:sahelmed_app/view/sales_engineer/maintenance_visit/visit_detail.dart';
+import 'package:sahelmed_app/view/service_engineer/maintenance_visit/visit_detail.dart';
 
 class MaintenanceVisit extends StatefulWidget {
   const MaintenanceVisit({super.key});

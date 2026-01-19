@@ -8,7 +8,7 @@ import 'package:sahelmed_app/core/app_radius.dart';
 import 'package:sahelmed_app/core/app_strings.dart';
 import 'package:sahelmed_app/core/app_textstyles.dart';
 import 'package:sahelmed_app/core/asset_paths.dart';
-import 'package:sahelmed_app/view/sales_engineer/homepage_se.dart';
+import 'package:sahelmed_app/view/service_engineer/homepage_se.dart';
 import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
 
 class LoginScreen extends StatefulWidget {
