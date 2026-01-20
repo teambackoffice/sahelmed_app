@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SahelMed',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const ServiceEngineerHomepage(),
+      home: const SalesPersonHomepage(),
     );
   }
 }

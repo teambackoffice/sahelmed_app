@@ -92,11 +92,20 @@ class QuotationPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Light grey-blue background
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_outlined,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF1D4ED8),
         title: const Text(
           'Quotations',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
         actions: [
@@ -113,13 +122,13 @@ class QuotationPage extends StatelessWidget {
                 );
               },
               child: Container(
-                width: 42,
-                height: 42,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: Color(0xFF2563EB),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 30),
+                child: const Icon(Icons.add, color: Colors.white, size: 35),
               ),
             ),
           ),
@@ -291,12 +300,12 @@ class QuotationPage extends StatelessWidget {
                           //   onTap: () {},
                           // ),
                           const SizedBox(width: 8),
-                          _buildActionButton(
-                            icon: Icons.arrow_forward,
-                            color: Color(0xFF2563EB),
-                            iconColor: Colors.white,
-                            onTap: () {},
-                          ),
+                          // _buildActionButton(
+                          //   icon: Icons.arrow_forward,
+                          //   color: Color(0xFF2563EB),
+                          //   iconColor: Colors.white,
+                          //   onTap: () {},
+                          // ),
                         ],
                       ),
                     ],

@@ -329,7 +329,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                       Expanded(
                         child: _buildInfoRow(
                           Icons.calendar_today_outlined,
-                          'Created',
+                          'Created On',
                           request['transactionDate'],
                           const Color(0xFF5C6BC0),
                         ),
@@ -338,7 +338,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                       Expanded(
                         child: _buildInfoRow(
                           Icons.event_available_outlined,
-                          'Required',
+                          'Required By',
                           request['requiredBy'],
                           const Color(0xFF26A69A),
                         ),

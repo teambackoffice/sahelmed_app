@@ -148,7 +148,15 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
               width: double.infinity,
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: AppColors.splashGradient,
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF3B82F6), // Lighter Blue
+                    Color(0xFF2563EB), // Base Blue
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -249,11 +257,24 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   subtitle: 'Log your location',
                   color: Colors.green,
                   onTap: () {
-                    // Navigate to Check-in page
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(builder: (context) => CheckInPage()),
-                    // );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: Color(0xFF2C3E50),
+                        content: Row(
+                          children: const [
+                            Icon(Icons.info_outline, color: Colors.white),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Check-in feature will be available soon',
+                              ),
+                            ),
+                          ],
+                        ),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
                 ),
               ],
