@@ -101,14 +101,24 @@ class Leadspage extends StatelessWidget {
         0xFFF5F7FA,
       ), // Very light grey-blue background
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons.arrow_back_ios_new_outlined,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Color(0xFF1D4ED8),
         elevation: 0,
         centerTitle: false,
         title: const Text(
           'Leads',
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            color: Color(0xFF1E293B),
+            color: Colors.white,
             fontSize: 24,
             letterSpacing: -0.5,
           ),
@@ -127,13 +137,13 @@ class Leadspage extends StatelessWidget {
                 );
               },
               child: Container(
-                width: 42,
-                height: 42,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: Color(0xFF2563EB),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 30),
+                child: const Icon(Icons.add, color: Colors.white, size: 35),
               ),
             ),
           ),

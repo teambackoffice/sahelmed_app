@@ -109,9 +109,10 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppColors.darkNavy,
+        foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
