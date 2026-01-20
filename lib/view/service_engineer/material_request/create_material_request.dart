@@ -18,6 +18,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
 
   // State Variables
   String? _selectedPurpose;
+  String? _selectedWarehouse;
   String? _selectedUom; // Changed controller to variable for Dropdown
   DateTime _transactionDate = DateTime.now();
   DateTime _requiredByDate = DateTime.now().add(const Duration(days: 7));
@@ -29,6 +30,17 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
     'Material Issue',
     'Manufacture',
     'Customer Provided',
+  ];
+
+  final List<String> warehouses = [
+    'Main Warehouse',
+    'Stores',
+    'Production Warehouse',
+    'Finished Goods',
+    'Raw Materials',
+    'Work In Progress',
+    'Rejected Warehouse',
+    'Transit Warehouse',
   ];
 
   final List<String> uomList = [
@@ -453,6 +465,35 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                       onChanged: (v) => setState(() => _selectedPurpose = v),
                       validator: (v) =>
                           v == null ? 'Please select a purpose' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    // Warehouse Dropdown
+                    DropdownButtonFormField<String>(
+                      value: _selectedWarehouse,
+                      decoration: InputDecoration(
+                        labelText: 'Warehouse',
+                        prefixIcon: Icon(
+                          Icons.warehouse_outlined,
+                          color: Colors.indigo.shade300,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      items: warehouses
+                          .map(
+                            (w) => DropdownMenuItem(value: w, child: Text(w)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedWarehouse = v),
+                      validator: (v) =>
+                          v == null ? 'Please select a warehouse' : null,
                     ),
                     const SizedBox(height: 16),
                     Row(

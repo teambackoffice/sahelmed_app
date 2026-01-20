@@ -238,7 +238,11 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
         backgroundColor: AppColors.darkNavy,
         title: const Text(
           'Create Machine Certificate',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         elevation: 0,
       ),

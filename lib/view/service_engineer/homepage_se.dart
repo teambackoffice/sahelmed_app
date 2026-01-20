@@ -220,7 +220,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
               children: [
                 _buildEnhancedMenuItem(
                   icon: Icons.description_outlined,
-                  title: 'Maintenance Visit',
+                  title: 'Assigned Visit',
                   subtitle: '',
                   color: Colors.orange,
                   onTap: () {

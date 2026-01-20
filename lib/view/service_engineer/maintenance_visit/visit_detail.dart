@@ -594,35 +594,35 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.build_circle_rounded,
-                            size: 16,
-                            color: const Color(0xFF203A43),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _visit['maintenance_type'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF203A43),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   padding: const EdgeInsets.symmetric(
+                    //     horizontal: 14,
+                    //     vertical: 8,
+                    //   ),
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.white,
+                    //     borderRadius: BorderRadius.circular(10),
+                    //   ),
+                    //   child: Row(
+                    //     mainAxisSize: MainAxisSize.min,
+                    //     children: [
+                    //       Icon(
+                    //         Icons.build_circle_rounded,
+                    //         size: 16,
+                    //         color: const Color(0xFF203A43),
+                    //       ),
+                    //       const SizedBox(width: 6),
+                    //       Text(
+                    //         _visit['maintenance_type'] ?? '',
+                    //         style: const TextStyle(
+                    //           fontSize: 14,
+                    //           color: Color(0xFF203A43),
+                    //           fontWeight: FontWeight.bold,
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
@@ -670,7 +670,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   _visit['status'] ?? '',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 17,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -720,14 +720,14 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   child: const Icon(
                     Icons.business_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(width: 14),
                 const Text(
                   'Customer Information',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2C3E50),
                     letterSpacing: -0.3,
@@ -844,14 +844,14 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   child: const Icon(
                     Icons.build_circle_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(width: 14),
                 const Text(
                   'Equipment Details',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2C3E50),
                     letterSpacing: -0.3,
@@ -927,14 +927,14 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   child: const Icon(
                     Icons.calendar_month_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(width: 14),
                 const Text(
                   'Schedule',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2C3E50),
                     letterSpacing: -0.3,
