@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
-import 'create_material_request.dart';
+import 'material_request_detail.dart';
 
 class MaterialRequestList extends StatefulWidget {
   const MaterialRequestList({Key? key}) : super(key: key);
@@ -129,27 +130,6 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
         ),
         backgroundColor: AppColors.darkNavy,
         elevation: 0,
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.search),
-        //     onPressed: () {
-        //       // Search functionality
-        //     },
-        //   ),
-        //   IconButton(
-        //     icon: const Icon(Icons.add_circle_outline),
-        //     onPressed: () {
-        //       Navigator.push(
-        //         context,
-        //         MaterialPageRoute(
-        //           builder: (context) => const CreateMaterialRequest(),
-        //         ),
-        //       );
-        //     },
-        //     tooltip: 'New Request',
-        //   ),
-        //   const SizedBox(width: 8),
-        // ],
       ),
       body: materialRequests.isEmpty
           ? Center(
@@ -184,6 +164,15 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
     );
   }
 
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd-MM-yyyy').format(date);
+    } catch (e) {
+      return dateString; // Return original if parsing fails
+    }
+  }
+
   Widget _buildMaterialRequestCard(Map<String, dynamic> request, int index) {
     return TweenAnimationBuilder(
       duration: Duration(milliseconds: 300 + (index * 50)),
@@ -206,7 +195,12 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
         ),
         child: InkWell(
           onTap: () {
-            // Navigate to detail page
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MaterialRequestDetail(request: request),
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(16),
           child: Container(
@@ -259,51 +253,6 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                           ],
                         ),
                       ),
-                      // Container(
-                      //   padding: const EdgeInsets.symmetric(
-                      //     horizontal: 14,
-                      //     vertical: 8,
-                      //   ),
-                      //   decoration: BoxDecoration(
-                      //     gradient: LinearGradient(
-                      //       colors: [
-                      //         _getStatusColor(request['status']),
-                      //         _getStatusColor(
-                      //           request['status'],
-                      //         ).withOpacity(0.8),
-                      //       ],
-                      //     ),
-                      //     borderRadius: BorderRadius.circular(20),
-                      //     boxShadow: [
-                      //       BoxShadow(
-                      //         color: _getStatusColor(
-                      //           request['status'],
-                      //         ).withOpacity(0.3),
-                      //         blurRadius: 8,
-                      //         offset: const Offset(0, 2),
-                      //       ),
-                      //     ],
-                      //   ),
-                      //   child: Row(
-                      //     mainAxisSize: MainAxisSize.min,
-                      //     children: [
-                      //       Icon(
-                      //         _getStatusIcon(request['status']),
-                      //         color: Colors.white,
-                      //         size: 14,
-                      //       ),
-                      //       const SizedBox(width: 4),
-                      //       Text(
-                      //         request['status'],
-                      //         style: const TextStyle(
-                      //           color: Colors.white,
-                      //           fontWeight: FontWeight.w600,
-                      //           fontSize: 12,
-                      //         ),
-                      //       ),
-                      //     ],
-                      //   ),
-                      // ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -330,7 +279,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                         child: _buildInfoRow(
                           Icons.calendar_today_outlined,
                           'Created On',
-                          request['transactionDate'],
+                          _formatDate(request['transactionDate']),
                           const Color(0xFF5C6BC0),
                         ),
                       ),
@@ -339,7 +288,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                         child: _buildInfoRow(
                           Icons.event_available_outlined,
                           'Required By',
-                          request['requiredBy'],
+                          _formatDate(request['requiredBy']),
                           const Color(0xFF26A69A),
                         ),
                       ),

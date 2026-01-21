@@ -41,7 +41,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
       'machine_name': 'MRI Scanner',
       'service_type': 'AMC',
       'visit_reference': 'VST-2024-003',
-      'date': '2026-01-19', // Today's date for testing
+      'date': '2026-01-21', // Today's date for testing
       'validity': '2025-12-31',
     },
   ];
@@ -112,13 +112,16 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         backgroundColor: AppColors.darkNavy,
-        foregroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Service Certificates',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
