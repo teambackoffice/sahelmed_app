@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/view/service_engineer/machine_certificate/machine_certifcate_detail.dart';
 
 class MachineServiceCertificate extends StatefulWidget {
   const MachineServiceCertificate({super.key});
@@ -291,7 +292,15 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
                         return CertificateCard(
                           certificate: cert,
                           onTap: () {
-                            // Navigate to detail page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    MachineServiceCertificateDetail(
+                                      certificate: cert,
+                                    ),
+                              ),
+                            );
                           },
                         );
                       },
