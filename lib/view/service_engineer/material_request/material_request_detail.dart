@@ -5,8 +5,7 @@ import 'package:sahelmed_app/core/app_colors.dart';
 class MaterialRequestDetail extends StatelessWidget {
   final Map<String, dynamic> request;
 
-  const MaterialRequestDetail({Key? key, required this.request})
-    : super(key: key);
+  const MaterialRequestDetail({super.key, required this.request});
 
   Color _getStatusColor(String status) {
     switch (status) {

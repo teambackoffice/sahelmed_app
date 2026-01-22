@@ -4,7 +4,7 @@ import 'package:sahelmed_app/core/app_colors.dart';
 import 'material_request_detail.dart';
 
 class MaterialRequestList extends StatefulWidget {
-  const MaterialRequestList({Key? key}) : super(key: key);
+  const MaterialRequestList({super.key});
 
   @override
   State<MaterialRequestList> createState() => _MaterialRequestListState();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sahelmed_app/core/app_colors.dart';
 
 class CreateNewLead extends StatefulWidget {
   const CreateNewLead({super.key});
@@ -106,7 +107,7 @@ class _CreateNewLeadState extends State<CreateNewLead> {
               _buildLabel('Source'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedSource,
+                initialValue: _selectedSource,
                 decoration: _inputDecoration('Select source'),
                 items: _sourceOptions.map((String source) {
                   return DropdownMenuItem<String>(
@@ -136,7 +137,7 @@ class _CreateNewLeadState extends State<CreateNewLead> {
                 child: ElevatedButton(
                   onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B),
+                    backgroundColor: Color(0xFF1D4ED8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/view/sales_person/check-in/check-in.dart';
 import 'package:sahelmed_app/view/sales_person/leads/leads.dart';
 import 'package:sahelmed_app/view/sales_person/quotation/quotation_page.dart';
 
@@ -251,32 +252,20 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   },
                 ),
 
-                // _buildEnhancedMenuItem(
-                //   icon: Icons.location_on,
-                //   title: 'Check-In',
-                //   subtitle: 'Log your location',
-                //   color: Colors.green,
-                //   onTap: () {
-                //     ScaffoldMessenger.of(context).showSnackBar(
-                //       SnackBar(
-                //         backgroundColor: Color(0xFF2C3E50),
-                //         content: Row(
-                //           children: const [
-                //             Icon(Icons.info_outline, color: Colors.white),
-                //             SizedBox(width: 8),
-                //             Expanded(
-                //               child: Text(
-                //                 'Check-in feature will be available soon',
-                //               ),
-                //             ),
-                //           ],
-                //         ),
-                //         duration: const Duration(seconds: 2),
-                //         behavior: SnackBarBehavior.floating,
-                //       ),
-                //     );
-                //   },
-                // ),
+                _buildEnhancedMenuItem(
+                  icon: Icons.location_on,
+                  title: 'Check-In',
+                  subtitle: 'Log your location',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EmployeeCheckIn(),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
 

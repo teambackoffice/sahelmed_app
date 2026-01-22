@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 
 class CreateMaterialRequest extends StatefulWidget {
-  const CreateMaterialRequest({Key? key}) : super(key: key);
+  const CreateMaterialRequest({super.key});
 
   @override
   State<CreateMaterialRequest> createState() => _CreateMaterialRequestState();
@@ -247,7 +247,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                       flex: 2,
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
-                        value: _selectedUom,
+                        initialValue: _selectedUom,
                         decoration: InputDecoration(
                           labelText: 'Unit',
                           labelStyle: TextStyle(
@@ -440,7 +440,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedPurpose,
+                      initialValue: _selectedPurpose,
                       decoration: InputDecoration(
                         labelText: 'Purpose',
                         prefixIcon: Icon(
@@ -469,7 +469,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                     const SizedBox(height: 16),
                     // Warehouse Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedWarehouse,
+                      initialValue: _selectedWarehouse,
                       decoration: InputDecoration(
                         labelText: 'Warehouse',
                         prefixIcon: Icon(

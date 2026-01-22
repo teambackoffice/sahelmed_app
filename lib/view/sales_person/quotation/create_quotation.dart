@@ -445,7 +445,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
           iconEnabledColor: const Color(0xFF2563EB),
           style: const TextStyle(

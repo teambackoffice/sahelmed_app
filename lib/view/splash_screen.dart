@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sahelmed_app/view/login_page.dart';
 import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
-import 'package:sahelmed_app/view/service_engineer/homepage_se.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
