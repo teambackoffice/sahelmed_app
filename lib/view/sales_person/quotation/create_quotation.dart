@@ -1,5 +1,29 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+
+class QuotationItem {
+  String? id;
+  String name;
+  String description;
+  double quantity;
+  double rate;
+  File? image;
+  String? imageUrl;
+
+  QuotationItem({
+    this.id,
+    this.name = '',
+    this.description = '',
+    this.quantity = 1.0,
+    this.rate = 0.0,
+    this.image,
+    this.imageUrl,
+  });
+
+  double get amount => quantity * rate;
+}
 
 class CreateQuotation extends StatefulWidget {
   const CreateQuotation({super.key});
@@ -10,12 +34,14 @@ class CreateQuotation extends StatefulWidget {
 
 class _CreateQuotationState extends State<CreateQuotation> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController itemController = TextEditingController();
   final TextEditingController companyController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
 
   String quotationTo = 'Customer';
   String orderType = 'Sales';
+  List<QuotationItem> items = [QuotationItem()];
+
+  final ImagePicker _picker = ImagePicker();
 
   String get nameLabel {
     switch (quotationTo) {
@@ -27,6 +53,12 @@ class _CreateQuotationState extends State<CreateQuotation> {
         return 'Customer Name';
     }
   }
+
+  double get subtotal => items.fold(0.0, (sum, item) => sum + item.amount);
+
+  double get taxAmount => subtotal * 0.18; // 18% tax
+
+  double get grandTotal => subtotal + taxAmount;
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -50,6 +82,41 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     if (picked != null) {
       dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+    }
+  }
+
+  Future<void> _pickImage(int index) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          items[index].image = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+    }
+  }
+
+  void _addNewItem() {
+    setState(() {
+      items.add(QuotationItem());
+    });
+  }
+
+  void _removeItem(int index) {
+    if (items.length > 1) {
+      setState(() {
+        items.removeAt(index);
+      });
     }
   }
 
@@ -95,10 +162,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF2563EB), // Blue 600
-                    Color(0xFF3B82F6), // Blue 500
-                  ],
+                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -208,20 +272,6 @@ class _CreateQuotationState extends State<CreateQuotation> {
                       hint: 'Enter company name',
                     ),
 
-                    const SizedBox(height: 24),
-
-                    // Section: Order Details
-                    _buildSectionLabel('Order Details'),
-                    const SizedBox(height: 16),
-
-                    /// Item
-                    _buildTextField(
-                      controller: itemController,
-                      label: 'Item',
-                      icon: Icons.inventory_2_outlined,
-                      hint: 'Enter item details',
-                    ),
-
                     const SizedBox(height: 20),
 
                     /// Date
@@ -251,18 +301,106 @@ class _CreateQuotationState extends State<CreateQuotation> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // Items Section
+            _buildSectionLabel('Items'),
+            const SizedBox(height: 16),
+
+            // Items List
+            ...List.generate(items.length, (index) {
+              return _buildItemCard(index);
+            }),
+
+            const SizedBox(height: 16),
+
+            // Add Item Button
+            InkWell(
+              onTap: _addNewItem,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    width: 2,
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Color(0xFF6366F1),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Add Another Item',
+                      style: TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Summary Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildSummaryRow('Subtotal', subtotal),
+                    const SizedBox(height: 12),
+                    _buildSummaryRow('Tax (18%)', taxAmount),
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    _buildSummaryRow('Grand Total', grandTotal, isTotal: true),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 32),
 
-            /// Submit Button
+            /// Submit Button - Moved to last
             Container(
               width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF2563EB), // Blue 600
-                    Color(0xFF3B82F6), // Blue 500
-                  ],
+                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -283,9 +421,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                onPressed: () {
-                  // Submit logic here
-                },
+                onPressed: _submitQuotation,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -316,10 +452,426 @@ class _CreateQuotationState extends State<CreateQuotation> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildItemCard(int index) {
+    final item = items[index];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Item Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Item ${index + 1}',
+                    style: const TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (items.length > 1)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 22,
+                    ),
+                    onPressed: () => _removeItem(index),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Product Image
+            InkWell(
+              onTap: () => _pickImage(index),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                ),
+                child: item.image != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(item.image!, fit: BoxFit.cover),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 40,
+                              color: Color(0xFF6366F1),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Tap to add product image',
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Item Name
+            TextFormField(
+              initialValue: item.name,
+              onChanged: (value) {
+                setState(() => item.name = value);
+              },
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1F2937),
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Product Name',
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF6B7280),
+                ),
+                hintText: 'Enter product name',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Container(
+                  margin: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.inventory_2_outlined,
+                    color: Color(0xFF2563EB),
+                    size: 20,
+                  ),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF6366F1),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Description
+            TextFormField(
+              initialValue: item.description,
+              onChanged: (value) {
+                setState(() => item.description = value);
+              },
+              maxLines: 3,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1F2937),
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Description',
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF6B7280),
+                ),
+                hintText: 'Enter product description',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontWeight: FontWeight.w400,
+                ),
+                alignLabelWithHint: true,
+                prefixIcon: Container(
+                  margin: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.description_outlined,
+                    color: Color(0xFF2563EB),
+                    size: 20,
+                  ),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF6366F1),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Quantity and Rate Row
+            Row(
+              children: [
+                // Quantity
+                Expanded(
+                  child: TextFormField(
+                    initialValue: item.quantity.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        item.quantity = double.tryParse(value) ?? 1.0;
+                      });
+                    },
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF1F2937),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Qty',
+                      labelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF6B7280),
+                      ),
+                      hintText: '1',
+                      prefixIcon: Container(
+                        margin: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.numbers,
+                          color: Color(0xFF2563EB),
+                          size: 18,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF6366F1),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Rate
+                Expanded(
+                  child: TextFormField(
+                    initialValue: item.rate.toString(),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        item.rate = double.tryParse(value) ?? 0.0;
+                      });
+                    },
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF1F2937),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Rate',
+                      labelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF6B7280),
+                      ),
+                      hintText: '0.00',
+                      prefixIcon: Container(
+                        margin: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.currency_rupee,
+                          color: Color(0xFF2563EB),
+                          size: 18,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF6366F1),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Amount Display
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF6366F1).withOpacity(0.1),
+                    const Color(0xFF3B82F6).withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF6366F1).withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Amount',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  Text(
+                    '₹${item.amount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 15,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? const Color(0xFF1F2937) : const Color(0xFF6B7280),
+          ),
+        ),
+        Text(
+          '₹${amount.toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: isTotal ? 20 : 16,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+            color: isTotal ? const Color(0xFF2563EB) : const Color(0xFF1F2937),
+          ),
+        ),
+      ],
     );
   }
 
@@ -331,10 +883,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
           height: 20,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [
-                Color(0xFF2563EB), // Blue 600
-                Color(0xFF3B82F6), // Blue 500
-              ],
+              colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -445,7 +994,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: value,
+          value: value,
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
           iconEnabledColor: const Color(0xFF2563EB),
           style: const TextStyle(
@@ -489,5 +1038,28 @@ class _CreateQuotationState extends State<CreateQuotation> {
         ),
       ],
     );
+  }
+
+  void _submitQuotation() {
+    // Validation
+    if (nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter customer/lead name')),
+      );
+      return;
+    }
+
+    if (items.isEmpty || items.first.name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one item')),
+      );
+      return;
+    }
+
+    // Your submission logic here
+    print('Quotation submitted successfully!');
+    print('Customer: ${nameController.text}');
+    print('Total Items: ${items.length}');
+    print('Grand Total: ₹${grandTotal.toStringAsFixed(2)}');
   }
 }
