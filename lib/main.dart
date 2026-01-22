@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sahelmed_app/view/login_page.dart';
-import 'package:sahelmed_app/view/service_engineer/homepage_se.dart';
-import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
+
+import 'package:sahelmed_app/view/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +16,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SahelMed',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const ServiceEngineerHomepage(),
+      home: const SplashScreen(),
     );
   }
 }

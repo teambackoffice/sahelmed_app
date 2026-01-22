@@ -251,32 +251,32 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   },
                 ),
 
-                _buildEnhancedMenuItem(
-                  icon: Icons.location_on,
-                  title: 'Check-In',
-                  subtitle: 'Log your location',
-                  color: Colors.green,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: Color(0xFF2C3E50),
-                        content: Row(
-                          children: const [
-                            Icon(Icons.info_outline, color: Colors.white),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Check-in feature will be available soon',
-                              ),
-                            ),
-                          ],
-                        ),
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
+                // _buildEnhancedMenuItem(
+                //   icon: Icons.location_on,
+                //   title: 'Check-In',
+                //   subtitle: 'Log your location',
+                //   color: Colors.green,
+                //   onTap: () {
+                //     ScaffoldMessenger.of(context).showSnackBar(
+                //       SnackBar(
+                //         backgroundColor: Color(0xFF2C3E50),
+                //         content: Row(
+                //           children: const [
+                //             Icon(Icons.info_outline, color: Colors.white),
+                //             SizedBox(width: 8),
+                //             Expanded(
+                //               child: Text(
+                //                 'Check-in feature will be available soon',
+                //               ),
+                //             ),
+                //           ],
+                //         ),
+                //         duration: const Duration(seconds: 2),
+                //         behavior: SnackBarBehavior.floating,
+                //       ),
+                //     );
+                //   },
+                // ),
               ],
             ),
 

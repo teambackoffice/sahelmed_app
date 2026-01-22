@@ -26,7 +26,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
       'machine_name': 'CT Scanner Pro',
       'service_type': 'PPM',
       'visit_reference': 'VST-2024-002',
-      'date': '2026-01-19', // Today's date for testing
+      'date': '2026-01-22', // Today's date for testing
       'validity': '2026-07-18',
     },
     {
@@ -42,7 +42,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
       'machine_name': 'MRI Scanner',
       'service_type': 'AMC',
       'visit_reference': 'VST-2024-003',
-      'date': '2026-01-21', // Today's date for testing
+      'date': '2026-01-22', // Today's date for testing
       'validity': '2025-12-31',
     },
   ];
