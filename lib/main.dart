@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import 'package:sahelmed_app/providers/login_provider.dart';
+import 'package:sahelmed_app/services/login_service.dart';
 import 'package:sahelmed_app/view/splash_screen.dart';
 
 void main() {
@@ -9,14 +11,19 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SahelMed',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const SplashScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LoginProvider(LoginService())),
+        // Add other providers here
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Sahelmed App',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: const SplashScreen(),
+      ),
     );
   }
 }

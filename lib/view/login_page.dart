@@ -1,13 +1,15 @@
-/// SMST Login Screen (UI Only – No Bloc)
+/// SMST Login Screen with API Integration
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/core/app_radius.dart';
 import 'package:sahelmed_app/core/app_strings.dart';
 import 'package:sahelmed_app/core/app_textstyles.dart';
 import 'package:sahelmed_app/core/asset_paths.dart';
+import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
 import 'package:sahelmed_app/view/service_engineer/homepage_se.dart';
 
@@ -27,7 +29,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _passwordFocusNode = FocusNode();
 
   bool _obscurePassword = true;
-  bool _isLoading = false;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -67,16 +68,70 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
 
-    await Future.delayed(const Duration(seconds: 1)); // fake login delay
+    final success = await loginProvider.login(
+      _usernameController.text.trim(),
+      _passwordController.text.trim(),
+    );
 
-    setState(() => _isLoading = false);
+    if (!mounted) return;
 
-    // Navigate to appropriate homepage based on your logic
+    if (success) {
+      final primaryRole = loginProvider.getPrimaryRole();
+      _navigateBasedOnRole(primaryRole);
+    } else {
+      _showErrorDialog(loginProvider.errorMessage ?? 'Login failed');
+    }
+  }
+
+  void _navigateBasedOnRole(String? role) {
+    if (role == null) {
+      _showErrorDialog('Unable to determine user role');
+      return;
+    }
+
+    Widget destination;
+
+    switch (role) {
+      case 'Service Engineer':
+        destination = const ServiceEngineerHomepage();
+        break;
+      case 'Service Manager':
+        destination =
+            const SalesPersonHomepage(); // Replace with ServiceManagerHomepage if different
+        break;
+      default:
+        _showErrorDialog('Invalid user role: $role');
+        return;
+    }
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const SalesPersonHomepage()),
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text('Login Failed'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -152,83 +207,89 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildLoginCard(BuildContext context) {
-    return SlideTransition(
-      position: _slideAnimation,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 40,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  AppStrings.welcomeBack,
-                  style: AppTextStyles.h2,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                _buildTextField(
-                  controller: _usernameController,
-                  focusNode: _usernameFocusNode,
-                  label: AppStrings.username,
-                  hint: AppStrings.enterUsername,
-                  prefixIcon: Icons.person_outline,
-                  validator: (v) =>
-                      v!.isEmpty ? AppStrings.usernameRequired : null,
-                ),
-
-                const SizedBox(height: 20),
-
-                _buildTextField(
-                  controller: _passwordController,
-                  focusNode: _passwordFocusNode,
-                  label: AppStrings.password,
-                  hint: AppStrings.enterPassword,
-                  prefixIcon: Icons.lock_outline,
-                  obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: Colors.grey[600],
-                    ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
+    return Consumer<LoginProvider>(
+      builder: (context, loginProvider, child) {
+        return SlideTransition(
+          position: _slideAnimation,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 40,
+                    offset: Offset(0, 10),
                   ),
-                  validator: (v) =>
-                      v!.isEmpty ? AppStrings.passwordRequired : null,
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      AppStrings.welcomeBack,
+                      style: AppTextStyles.h2,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign in to continue',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+
+                    _buildTextField(
+                      controller: _usernameController,
+                      focusNode: _usernameFocusNode,
+                      label: AppStrings.username,
+                      hint: AppStrings.enterUsername,
+                      prefixIcon: Icons.person_outline,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) =>
+                          v!.isEmpty ? AppStrings.usernameRequired : null,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    _buildTextField(
+                      controller: _passwordController,
+                      focusNode: _passwordFocusNode,
+                      label: AppStrings.password,
+                      hint: AppStrings.enterPassword,
+                      prefixIcon: Icons.lock_outline,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.grey[600],
+                        ),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                      ),
+                      validator: (v) =>
+                          v!.isEmpty ? AppStrings.passwordRequired : null,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    _buildLoginButton(loginProvider.isLoading),
+                  ],
                 ),
-
-                const SizedBox(height: 32),
-
-                _buildLoginButton(),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -239,6 +300,7 @@ class _LoginScreenState extends State<LoginScreen>
     required String hint,
     required IconData prefixIcon,
     bool obscureText = false,
+    TextInputType? keyboardType,
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
@@ -246,6 +308,7 @@ class _LoginScreenState extends State<LoginScreen>
       controller: controller,
       focusNode: focusNode,
       obscureText: obscureText,
+      keyboardType: keyboardType,
       validator: validator,
       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
@@ -283,7 +346,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(bool isLoading) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -298,7 +361,7 @@ class _LoginScreenState extends State<LoginScreen>
         ],
       ),
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
+        onPressed: isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -306,7 +369,7 @@ class _LoginScreenState extends State<LoginScreen>
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: _isLoading
+        child: isLoading
             ? const SizedBox(
                 height: 24,
                 width: 24,
