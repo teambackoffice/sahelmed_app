@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/view/login_page.dart';
 import 'package:sahelmed_app/view/sales_person/homepage_sp.dart';
+import 'package:sahelmed_app/view/service_engineer/homepage_se.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -35,15 +38,45 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to home after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
+    // Check auth and navigate
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    // Artificial delay for splash effect
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    final isLoggedIn = await loginProvider.checkLoginStatus();
+
+    if (!mounted) return;
+
+    if (isLoggedIn) {
+      final role = loginProvider.getPrimaryRole();
+      if (role == 'Service Engineer') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (_) => const ServiceEngineerHomepage()),
+        );
+      } else if (role == 'Service Manager') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SalesPersonHomepage()),
+        );
+      } else {
+        // Fallback if role is not recognized or generic
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
-    });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   @override
@@ -71,8 +104,6 @@ class _SplashScreenState extends State<SplashScreen>
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 24),
-                // Optional: Loading indicator or app name text if desired
-                // const CircularProgressIndicator(),
               ],
             ),
           ),

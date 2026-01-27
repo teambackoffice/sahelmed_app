@@ -24,7 +24,7 @@ class _QuotationPageState extends State<QuotationPage> {
   void initState() {
     super.initState();
     // Initialize controller with service instance
-    _controller = GetQuotationController(GetQuotationService());
+    _controller = GetQuotationController();
     _loadQuotations();
     _scrollController.addListener(_onScroll);
   }

@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sahelmed_app/services/login_service.dart';
 
 class LoginProvider extends ChangeNotifier {
-  final LoginService _authService;
-
-  LoginProvider(this._authService);
+  final LoginService _authService = LoginService();
 
   bool isLoading = false;
   String? errorMessage;
@@ -69,5 +67,20 @@ class LoginProvider extends ChangeNotifier {
     userRoles = [];
     permissions = null;
     notifyListeners();
+  }
+
+  Future<bool> checkLoginStatus() async {
+    try {
+      final isLoggedIn = await _authService.isLoggedIn();
+      if (isLoggedIn) {
+        userRoles = await _authService.getRoles();
+        permissions = await _authService.getPermissions();
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error checking login status: $e');
+    }
+    return false;
   }
 }

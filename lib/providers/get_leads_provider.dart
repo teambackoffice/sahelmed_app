@@ -12,8 +12,6 @@ class LeadController extends ChangeNotifier {
   bool _hasMore = false;
   Pagination? _pagination;
 
-  LeadController(LeadService leadService);
-
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<Lead> get leads => _leads;

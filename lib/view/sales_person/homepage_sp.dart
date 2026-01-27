@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/providers/logout_provider.dart';
+import 'package:sahelmed_app/view/login_page.dart';
 import 'package:sahelmed_app/view/sales_person/check-in/check-in.dart';
 import 'package:sahelmed_app/view/sales_person/leads/leads.dart';
 import 'package:sahelmed_app/view/sales_person/quotation/quotation_page.dart';
@@ -19,71 +22,79 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
     super.initState();
   }
 
-  void logout() async {
-    bool? confirm = await showDialog(
+  void showLogoutDialog(BuildContext context) async {
+    final logoutController = Provider.of<LogoutController>(
+      context,
+      listen: false,
+    );
+
+    bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.logout, color: Colors.blue[900], size: 24),
-            SizedBox(width: 12),
-            Text(
+            Icon(Icons.logout, color: Colors.blue[900]),
+            const SizedBox(width: 12),
+            const Text(
               'Confirm Logout',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        content: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            'Are you sure you want to logout?',
-            style: TextStyle(fontSize: 16, color: Colors.black, height: 1.4),
-          ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(fontSize: 16),
         ),
-        actionsPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
-            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
-          SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-            ),
-            child: Text(
-              'Logout',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
+          Consumer<LogoutController>(
+            builder: (_, controller, __) {
+              return ElevatedButton(
+                onPressed: controller.isLoading
+                    ? null
+                    : () async {
+                        Navigator.pop(context, true);
+                      },
+                child: controller.isLoading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Logout'),
+              );
+            },
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      final success = await logoutController.logout();
+
+      if (success) {
+        // Navigate to Login Screen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(logoutController.errorMessage ?? 'Logout failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _getGreeting() {
@@ -127,7 +138,7 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
             margin: EdgeInsets.only(right: 16),
             child: IconButton(
               icon: Icon(Icons.logout, color: Colors.blue[900]),
-              onPressed: logout,
+              onPressed: () => showLogoutDialog(context),
               tooltip: 'Logout',
             ),
           ),

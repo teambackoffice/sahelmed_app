@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
+import 'package:sahelmed_app/providers/logout_provider.dart';
 import 'package:sahelmed_app/services/get_leads_service.dart';
 import 'package:sahelmed_app/services/get_quotation_service.dart';
 import 'package:sahelmed_app/services/login_service.dart';
@@ -19,12 +20,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LoginProvider(LoginService())),
-        ChangeNotifierProvider(create: (_) => LeadController(LeadService())),
-        ChangeNotifierProvider(
-          create: (_) => GetQuotationController(GetQuotationService()),
-        ),
-        // Add other providers here
+        ChangeNotifierProvider(create: (_) => LoginProvider()),
+        ChangeNotifierProvider(create: (_) => LeadController()),
+        ChangeNotifierProvider(create: (_) => GetQuotationController()),
+        ChangeNotifierProvider(create: (_) => LogoutController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -12,8 +12,6 @@ class GetQuotationController extends ChangeNotifier {
   bool hasMore = false;
   int totalCount = 0;
 
-  GetQuotationController(GetQuotationService getQuotationService);
-
   Future<void> fetchQuotations() async {
     try {
       isLoading = true;
