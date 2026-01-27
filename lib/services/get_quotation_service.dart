@@ -24,10 +24,7 @@ class GetQuotationService {
 
     final response = await http.get(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': 'session_id=$sessionId',
-      },
+      headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sessionId'},
     );
 
     print('================ API RESPONSE ================');

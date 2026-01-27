@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/modal/get_material_request_modal.dart';
+import 'package:sahelmed_app/providers/get_material_request_provider.dart';
 import 'material_request_detail.dart';
 
 class MaterialRequestList extends StatefulWidget {
@@ -11,73 +14,37 @@ class MaterialRequestList extends StatefulWidget {
 }
 
 class _MaterialRequestListState extends State<MaterialRequestList> {
-  // Dummy data for material requests
-  final List<Map<String, dynamic>> materialRequests = [
-    {
-      'id': 'MAT-REQ-2024-001',
-      'purpose': 'Purchase',
-      'transactionDate': '2024-01-15',
-      'requiredBy': '2024-01-20',
-      'status': 'Pending',
-      'items': [
-        {'itemCode': 'ITM-001', 'qty': 10, 'uom': 'Nos'},
-        {'itemCode': 'ITM-002', 'qty': 5, 'uom': 'Box'},
-      ],
-    },
-    {
-      'id': 'MAT-REQ-2024-002',
-      'purpose': 'Material Transfer',
-      'transactionDate': '2024-01-14',
-      'requiredBy': '2024-01-18',
-      'status': 'Approved',
-      'items': [
-        {'itemCode': 'RAW-101', 'qty': 100, 'uom': 'Kg'},
-        {'itemCode': 'RAW-102', 'qty': 50, 'uom': 'Ltr'},
-      ],
-    },
-    {
-      'id': 'MAT-REQ-2024-003',
-      'purpose': 'Manufacture',
-      'transactionDate': '2024-01-13',
-      'requiredBy': '2024-01-17',
-      'status': 'Rejected',
-      'items': [
-        {'itemCode': 'COMP-201', 'qty': 25, 'uom': 'Pcs'},
-      ],
-    },
-    {
-      'id': 'MAT-REQ-2024-004',
-      'purpose': 'Customer Provided',
-      'transactionDate': '2024-01-12',
-      'requiredBy': '2024-01-16',
-      'status': 'Completed',
-      'items': [
-        {'itemCode': 'CUST-301', 'qty': 15, 'uom': 'Sets'},
-        {'itemCode': 'CUST-302', 'qty': 8, 'uom': 'Nos'},
-      ],
-    },
-    {
-      'id': 'MAT-REQ-2024-005',
-      'purpose': 'Purchase',
-      'transactionDate': '2024-01-11',
-      'requiredBy': '2024-01-19',
-      'status': 'Pending',
-      'items': [
-        {'itemCode': 'OFF-401', 'qty': 200, 'uom': 'Sheets'},
-        {'itemCode': 'OFF-402', 'qty': 10, 'uom': 'Box'},
-      ],
-    },
-  ];
+  late GetMachineRequestController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GetMachineRequestController();
+    // Fetch data when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.fetchRequests();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Pending':
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'draft':
         return const Color(0xFFFF9800);
-      case 'Approved':
+      case 'approved':
+      case 'submitted':
         return const Color(0xFF4CAF50);
-      case 'Rejected':
+      case 'rejected':
+      case 'cancelled':
         return const Color(0xFFE53935);
-      case 'Completed':
+      case 'completed':
+      case 'stopped':
         return const Color(0xFF2196F3);
       default:
         return Colors.grey;
@@ -85,14 +52,18 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
   }
 
   IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'Pending':
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'draft':
         return Icons.pending_outlined;
-      case 'Approved':
+      case 'approved':
+      case 'submitted':
         return Icons.check_circle_outline;
-      case 'Rejected':
+      case 'rejected':
+      case 'cancelled':
         return Icons.cancel_outlined;
-      case 'Completed':
+      case 'completed':
+      case 'stopped':
         return Icons.task_alt;
       default:
         return Icons.help_outline;
@@ -100,14 +71,15 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
   }
 
   IconData _getPurposeIcon(String purpose) {
-    switch (purpose) {
-      case 'Purchase':
+    switch (purpose.toLowerCase()) {
+      case 'purchase':
         return Icons.shopping_cart_outlined;
-      case 'Material Transfer':
+      case 'material transfer':
+      case 'material issue':
         return Icons.swap_horiz;
-      case 'Manufacture':
+      case 'manufacture':
         return Icons.precision_manufacturing_outlined;
-      case 'Customer Provided':
+      case 'customer provided':
         return Icons.person_outline;
       default:
         return Icons.inventory_2_outlined;
@@ -116,64 +88,136 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Material Requests',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
+    return ChangeNotifierProvider.value(
+      value: _controller,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text(
+            'Material Requests',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              color: Colors.white,
+            ),
           ),
-        ),
-        backgroundColor: AppColors.darkNavy,
-        elevation: 0,
-      ),
-      body: materialRequests.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inbox_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No material requests found',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: materialRequests.length,
-              itemBuilder: (context, index) {
-                final request = materialRequests[index];
-                return _buildMaterialRequestCard(request, index);
+          backgroundColor: AppColors.darkNavy,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                _controller.fetchRequests();
               },
             ),
+          ],
+        ),
+        body: Consumer<GetMachineRequestController>(
+          builder: (context, controller, child) {
+            // Loading state
+            if (controller.isLoading && controller.requests.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Error state
+            if (controller.errorMessage != null &&
+                controller.requests.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 80,
+                      color: Colors.red.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading requests',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        controller.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        controller.fetchRequests();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkNavy,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Empty state
+            if (controller.requests.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 80,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No material requests found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Data loaded successfully
+            return RefreshIndicator(
+              onRefresh: () => controller.fetchRequests(),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: controller.requests.length,
+                itemBuilder: (context, index) {
+                  final request = controller.requests[index];
+                  return _buildMaterialRequestCard(request, index);
+                },
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return DateFormat('dd-MM-yyyy').format(date);
-    } catch (e) {
-      return dateString; // Return original if parsing fails
-    }
+  String _formatDate(DateTime date) {
+    return DateFormat('dd-MM-yyyy').format(date);
   }
 
-  Widget _buildMaterialRequestCard(Map<String, dynamic> request, int index) {
+  Widget _buildMaterialRequestCard(Datum request, int index) {
     return TweenAnimationBuilder(
       duration: Duration(milliseconds: 300 + (index * 50)),
       tween: Tween<double>(begin: 0, end: 1),
@@ -223,7 +267,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          _getPurposeIcon(request['purpose']),
+                          _getPurposeIcon(request.materialRequestType),
                           color: const Color(0xFF1A237E),
                           size: 24,
                         ),
@@ -234,7 +278,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              request['id'],
+                              request.name,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -243,7 +287,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              request['purpose'],
+                              request.materialRequestType,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade600,
@@ -253,9 +297,58 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                           ],
                         ),
                       ),
+                      // Status Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(
+                            request.status,
+                          ).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _getStatusColor(request.status),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getStatusIcon(request.status),
+                              size: 14,
+                              color: _getStatusColor(request.status),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              request.status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _getStatusColor(request.status),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  // Title if available
+                  if (request.title.isNotEmpty) ...[
+                    Text(
+                      request.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Divider
                   Container(
@@ -278,8 +371,8 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                       Expanded(
                         child: _buildInfoRow(
                           Icons.calendar_today_outlined,
-                          'Created On',
-                          _formatDate(request['transactionDate']),
+                          'Transaction Date',
+                          _formatDate(request.transactionDate),
                           const Color(0xFF5C6BC0),
                         ),
                       ),
@@ -288,7 +381,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                         child: _buildInfoRow(
                           Icons.event_available_outlined,
                           'Required By',
-                          _formatDate(request['requiredBy']),
+                          _formatDate(request.scheduleDate),
                           const Color(0xFF26A69A),
                         ),
                       ),
@@ -296,142 +389,81 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Items Section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                        width: 1,
+                  // Warehouse Information
+                  if (request.setWarehouse.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1A237E).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.inventory_2_outlined,
-                                size: 16,
-                                color: Color(0xFF1A237E),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Items (${request['items'].length})',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A237E),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...List.generate(
-                          request['items'].length > 2
-                              ? 2
-                              : request['items'].length,
-                          (index) {
-                            final item = request['items'][index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1A237E),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      item['itemCode'],
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey.shade800,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF1A237E,
-                                      ).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      '${item['qty']} ${item['uom']}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF1A237E),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                        if (request['items'].length > 2)
+                      child: Row(
+                        children: [
                           Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A237E).withOpacity(0.05),
+                              color: const Color(0xFF1A237E).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            child: const Icon(
+                              Icons.warehouse_outlined,
+                              size: 16,
+                              color: Color(0xFF1A237E),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 14,
-                                  color: Color(0xFF1A237E),
-                                ),
-                                const SizedBox(width: 6),
                                 Text(
-                                  '${request['items'].length - 2} more items',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF1A237E),
+                                  'Target Warehouse',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  request.setWarehouse ?? 'N/A',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade800,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Company Information
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.business_outlined,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        request.company,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

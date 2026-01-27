@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
+import 'package:sahelmed_app/providers/get_material_request_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LeadController()),
         ChangeNotifierProvider(create: (_) => GetQuotationController()),
         ChangeNotifierProvider(create: (_) => LogoutController()),
+        ChangeNotifierProvider(create: (_) => GetMachineRequestController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
