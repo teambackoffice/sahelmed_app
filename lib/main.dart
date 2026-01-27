@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
+import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/services/get_leads_service.dart';
+import 'package:sahelmed_app/services/get_quotation_service.dart';
 import 'package:sahelmed_app/services/login_service.dart';
 import 'package:sahelmed_app/view/splash_screen.dart';
 
@@ -19,6 +21,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider(LoginService())),
         ChangeNotifierProvider(create: (_) => LeadController(LeadService())),
+        ChangeNotifierProvider(
+          create: (_) => GetQuotationController(GetQuotationService()),
+        ),
         // Add other providers here
       ],
       child: MaterialApp(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sahelmed_app/config/api_constant.dart';
@@ -11,6 +12,9 @@ class LoginService {
   static const String _loginUrl =
       '${ApiConstants.baseUrl}medservice_pro.medservice.api.auth.login';
 
+  /// ============================
+  /// LOGIN API
+  /// ============================
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -22,195 +26,206 @@ class LoginService {
 
       request.body = jsonEncode({"usr": email, "pwd": password});
 
+      debugPrint('➡️ LOGIN REQUEST BODY: ${request.body}');
+
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
+
+      debugPrint('⬅️ STATUS CODE: ${response.statusCode}');
+      debugPrint('⬅️ RAW RESPONSE: $responseBody');
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(responseBody);
 
-        // Store entire response
+        /// 🔥 PRINT FULL RESPONSE (PRETTY JSON)
+        debugPrint(
+          '✅ LOGIN RESPONSE:\n${const JsonEncoder.withIndent('  ').convert(decoded)}',
+        );
+
+        /// Store full response
         await _storage.write(key: 'login_response', value: jsonEncode(decoded));
 
-        // Extract message object
         final message = decoded['message'];
 
         if (message != null && message is Map<String, dynamic>) {
-          // Store API credentials
-          if (message['api_key'] != null) {
-            await _storage.write(
-              key: 'api_key',
-              value: message['api_key'].toString(),
-            );
-          }
+          /// API Credentials
+          await _writeIfNotNull('api_key', message['api_key']);
+          await _writeIfNotNull('api_secret', message['api_secret']);
+          await _writeIfNotNull('session_id', message['session_id']);
 
-          if (message['api_secret'] != null) {
-            await _storage.write(
-              key: 'api_secret',
-              value: message['api_secret'].toString(),
-            );
-          }
+          debugPrint('🔑 API KEY: ${message['api_key']}');
+          debugPrint('🔑 API SECRET: ${message['api_secret']}');
+          debugPrint('🆔 SESSION ID: ${message['session_id']}');
 
-          if (message['session_id'] != null) {
-            await _storage.write(
-              key: 'session_id',
-              value: message['session_id'].toString(),
-            );
-          }
-
-          // Store user info
+          /// User Info
           final userInfo = message['user_info'];
           if (userInfo != null) {
             await _storage.write(key: 'user_info', value: jsonEncode(userInfo));
 
-            await _storage.write(
-              key: 'user_id',
-              value: userInfo['user_id'].toString(),
+            await _writeIfNotNull('user_id', userInfo['user_id']);
+            await _writeIfNotNull('full_name', userInfo['full_name']);
+            await _writeIfNotNull('email', userInfo['email']);
+            await _writeIfNotNull('user_image', userInfo['user_image']);
+
+            debugPrint(
+              '👤 USER INFO:\n${const JsonEncoder.withIndent('  ').convert(userInfo)}',
             );
-
-            await _storage.write(
-              key: 'full_name',
-              value: userInfo['full_name'].toString(),
-            );
-
-            if (userInfo['email'] != null) {
-              await _storage.write(
-                key: 'email',
-                value: userInfo['email'].toString(),
-              );
-            }
-
-            if (userInfo['user_image'] != null) {
-              await _storage.write(
-                key: 'user_image',
-                value: userInfo['user_image'].toString(),
-              );
-            }
           }
 
-          // Store roles array
+          /// Roles
           final roles = message['roles'];
           if (roles != null && roles is List) {
             await _storage.write(key: 'roles', value: jsonEncode(roles));
+            debugPrint('🎭 ROLES: $roles');
           }
 
-          // Store permissions
+          /// Permissions
           final permissions = message['permissions'];
-          if (permissions != null) {
+          if (permissions != null && permissions is Map<String, dynamic>) {
             await _storage.write(
               key: 'permissions',
               value: jsonEncode(permissions),
             );
 
-            // Store specific permission flags
-            await _storage.write(
-              key: 'is_service_engineer',
-              value: permissions['is_service_engineer'].toString(),
+            await _writeIfNotNull(
+              'is_service_engineer',
+              permissions['is_service_engineer'],
             );
 
-            await _storage.write(
-              key: 'is_system_manager',
-              value: permissions['is_system_manager'].toString(),
+            await _writeIfNotNull(
+              'is_system_manager',
+              permissions['is_system_manager'],
+            );
+
+            debugPrint(
+              '🔐 PERMISSIONS:\n${const JsonEncoder.withIndent('  ').convert(permissions)}',
             );
           }
         }
 
-        // Store home page
+        /// Home Page
         if (decoded['home_page'] != null) {
           await _storage.write(
             key: 'home_page',
             value: decoded['home_page'].toString(),
           );
+          debugPrint('🏠 HOME PAGE: ${decoded['home_page']}');
         }
+
+        /// 🔐 PRINT EVERYTHING STORED
+        await printAllStoredValues();
 
         return decoded;
       } else {
+        debugPrint('❌ LOGIN FAILED');
+        debugPrint('STATUS CODE: ${response.statusCode}');
+        debugPrint('ERROR BODY: $responseBody');
+
         final errorBody = jsonDecode(responseBody);
-        throw Exception(
-          errorBody['message'] ?? 'Login failed: ${response.reasonPhrase}',
-        );
+        throw Exception(errorBody['message'] ?? 'Login failed');
       }
     } catch (e) {
-      throw Exception('Login error: ${e.toString()}');
+      debugPrint('🚨 LOGIN EXCEPTION: $e');
+      throw Exception('Login error: $e');
     }
   }
 
-  // Get API Key
+  /// ============================
+  /// STORAGE HELPERS
+  /// ============================
+  Future<void> _writeIfNotNull(String key, dynamic value) async {
+    if (value != null) {
+      await _storage.write(key: key, value: value.toString());
+    }
+  }
+
+  Future<void> printAllStoredValues() async {
+    final allValues = await _storage.readAll();
+
+    debugPrint('🔐 ===== SECURE STORAGE DUMP START =====');
+    allValues.forEach((key, value) {
+      debugPrint('$key : $value');
+    });
+    debugPrint('🔐 ===== SECURE STORAGE DUMP END =====');
+  }
+
+  /// ============================
+  /// GETTERS
+  /// ============================
   Future<String?> getApiKey() async {
-    return await _storage.read(key: 'api_key');
+    final value = await _storage.read(key: 'api_key');
+    debugPrint('GET api_key: $value');
+    return value;
   }
 
-  // Get API Secret
   Future<String?> getApiSecret() async {
-    return await _storage.read(key: 'api_secret');
+    final value = await _storage.read(key: 'api_secret');
+    debugPrint('GET api_secret: $value');
+    return value;
   }
 
-  // Get Session ID
   Future<String?> getSessionId() async {
-    return await _storage.read(key: 'session_id');
+    final value = await _storage.read(key: 'session_id');
+    debugPrint('GET session_id: $value');
+    return value;
   }
 
-  // Get User Info
   Future<Map<String, dynamic>?> getUserInfo() async {
-    final userInfo = await _storage.read(key: 'user_info');
-    if (userInfo != null) {
-      return jsonDecode(userInfo);
-    }
-    return null;
+    final data = await _storage.read(key: 'user_info');
+    debugPrint('GET user_info: $data');
+    return data != null ? jsonDecode(data) : null;
   }
 
-  // Get Roles
   Future<List<String>> getRoles() async {
-    final roles = await _storage.read(key: 'roles');
-    if (roles != null) {
-      final List<dynamic> rolesList = jsonDecode(roles);
-      return rolesList.map((e) => e.toString()).toList();
+    final data = await _storage.read(key: 'roles');
+    debugPrint('GET roles: $data');
+    if (data != null) {
+      return List<String>.from(jsonDecode(data));
     }
     return [];
   }
 
-  // Get Permissions
   Future<Map<String, dynamic>?> getPermissions() async {
-    final permissions = await _storage.read(key: 'permissions');
-    if (permissions != null) {
-      return jsonDecode(permissions);
-    }
-    return null;
+    final data = await _storage.read(key: 'permissions');
+    debugPrint('GET permissions: $data');
+    return data != null ? jsonDecode(data) : null;
   }
 
-  // Check if user is Service Engineer
   Future<bool> isServiceEngineer() async {
     final value = await _storage.read(key: 'is_service_engineer');
+    debugPrint('is_service_engineer: $value');
     return value == 'true';
   }
 
-  // Check if user is System Manager
   Future<bool> isSystemManager() async {
     final value = await _storage.read(key: 'is_system_manager');
+    debugPrint('is_system_manager: $value');
     return value == 'true';
   }
 
-  // Get Full Name
   Future<String?> getFullName() async {
-    return await _storage.read(key: 'full_name');
+    final value = await _storage.read(key: 'full_name');
+    debugPrint('GET full_name: $value');
+    return value;
   }
 
-  // Check if logged in
   Future<bool> isLoggedIn() async {
     final sessionId = await _storage.read(key: 'session_id');
+    debugPrint('CHECK login, session_id: $sessionId');
     return sessionId != null && sessionId.isNotEmpty;
   }
 
-  // Get complete login response
   Future<Map<String, dynamic>?> getLoginResponse() async {
-    final response = await _storage.read(key: 'login_response');
-    if (response != null) {
-      return jsonDecode(response);
-    }
-    return null;
+    final data = await _storage.read(key: 'login_response');
+    debugPrint('GET login_response: $data');
+    return data != null ? jsonDecode(data) : null;
   }
 
-  // Logout
+  /// ============================
+  /// LOGOUT
+  /// ============================
   Future<void> logout() async {
+    debugPrint('🚪 LOGOUT – clearing storage');
     await _storage.deleteAll();
   }
 }
