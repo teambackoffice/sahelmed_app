@@ -298,11 +298,13 @@ class _QuotationPageState extends State<QuotationPage> {
                   DateFormat('dd MMM yyyy').format(quotation.date),
                 ),
                 const SizedBox(height: 8),
-                _buildDetailRow(
-                  Icons.event_available_outlined,
-                  'Valid Till',
-                  DateFormat('dd MMM yyyy').format(quotation.validTill),
-                ),
+                quotation.validTill != null
+                    ? _buildDetailRow(
+                        Icons.event_available_outlined,
+                        'Valid Till',
+                        DateFormat('dd MMM yyyy').format(quotation.validTill!),
+                      )
+                    : const SizedBox(),
                 const SizedBox(height: 8),
                 _buildDetailRow(
                   Icons.business_outlined,

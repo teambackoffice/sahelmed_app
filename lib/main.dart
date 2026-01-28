@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/providers/create_lead_provider.dart';
+import 'package:sahelmed_app/providers/create_quotation_provider.dart';
+import 'package:sahelmed_app/providers/get_customer_provider.dart';
+import 'package:sahelmed_app/providers/get_item_list_provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
 import 'package:sahelmed_app/providers/get_material_request_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
@@ -28,6 +31,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LogoutController()),
         ChangeNotifierProvider(create: (_) => GetMachineRequestController()),
         ChangeNotifierProvider(create: (_) => CreateLeadProvider()),
+        ChangeNotifierProvider(create: (_) => CreateQuotationController()),
+        ChangeNotifierProvider(create: (_) => GetCustomerProvider()),
+        ChangeNotifierProvider(create: (_) => ItemsProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

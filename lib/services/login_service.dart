@@ -24,7 +24,11 @@ class LoginService {
 
       request.headers.addAll({'Content-Type': 'application/json'});
 
-      request.body = jsonEncode({"usr": email, "pwd": password});
+      request.body = jsonEncode({
+        "usr": email,
+        "pwd": password,
+        "auth_method": "session",
+      });
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
@@ -89,7 +93,7 @@ class LoginService {
         }
 
         /// 🔐 PRINT EVERYTHING STORED
-        await printAllStoredValues();
+        // await printAllStoredValues();
 
         return decoded;
       } else {

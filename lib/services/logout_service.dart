@@ -11,50 +11,59 @@ class LogoutService {
 
   Future<Map<String, dynamic>> logout() async {
     try {
-      final headers = {
-        'Authorization': 'token a255fc09fc28806:3247e06720bb239',
-        'Content-Type': 'application/json',
-      };
+      // Get credentials for dynamic token
+      final apiKey = await _storage.read(key: 'api_key');
+      final apiSecret = await _storage.read(key: 'api_secret');
+      final sessionId = await _storage.read(key: 'session_id');
 
-      final request = http.Request('POST', Uri.parse(_logoutUrl));
-      request.headers.addAll(headers);
+      if (sessionId != null || (apiKey != null && apiSecret != null)) {
+        final headers = <String, String>{'Content-Type': 'application/json'};
 
-      final response = await request.send();
+        if (apiKey != null && apiSecret != null) {
+          headers['Authorization'] = 'token $apiKey:$apiSecret';
+        } else if (sessionId != null) {
+          headers['Cookie'] = 'sid=$sessionId';
+        }
 
-      final responseBody = await response.stream.bytesToString();
+        final request = http.Request('POST', Uri.parse(_logoutUrl));
+        request.headers.addAll(headers);
 
-      if (responseBody.isNotEmpty) {
-        try {
-          final decodedBody = json.decode(responseBody);
+        final response = await request.send();
+        final responseBody = await response.stream.bytesToString();
 
-          if (response.statusCode == 200) {
-            // Clear local storage after successful logout
-            await _storage.deleteAll();
+        // Always clear storage to ensure user can logout locally
+        await _storage.deleteAll();
 
+        if (response.statusCode == 200) {
+          try {
+            final decodedBody = json.decode(responseBody);
             return {'success': true, 'data': decodedBody};
-          } else {
-            return {
-              'success': false,
-              'message': decodedBody['message'] ?? 'Logout failed',
-              'statusCode': response.statusCode,
-            };
+          } catch (e) {
+            return {'success': true, 'message': 'Logged out locally'};
           }
-        } catch (jsonError) {
-          return {
-            'success': false,
-            'message': 'Invalid JSON response',
-            'rawResponse': responseBody,
-          };
+        } else {
+          // Verify if we can parse the error
+          try {
+            final decodedBody = json.decode(responseBody);
+            return {
+              'success': true,
+              'message':
+                  decodedBody['message'] ??
+                  'Logged out locally with server error',
+            };
+          } catch (_) {
+            return {'success': true, 'message': 'Logged out locally'};
+          }
         }
       } else {
-        return {
-          'success': false,
-          'message': 'Empty response from server',
-          'statusCode': response.statusCode,
-        };
+        // No credentials, just clear local storage
+        await _storage.deleteAll();
+        return {'success': true, 'message': 'Logged out locally'};
       }
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
+      // Force logout on exception
+      await _storage.deleteAll();
+      return {'success': true, 'message': 'Logged out locally (Error: $e)'};
     }
   }
 }

@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:sahelmed_app/config/api_constant.dart';
+import 'package:sahelmed_app/modal/create_quotation_response.dart';
+import '../config/api_constant.dart';
 
-class CreateLeadService {
+class CreateQuotationService {
   static const String _url =
-      '${ApiConstants.baseUrl}medservice_pro.medservice.api.lead.create_lead';
+      '${ApiConstants.baseUrl}medservice_pro.medservice.api.quotation.create_quotation';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  Future<Map<String, dynamic>> createLead({
-    required String leadName,
-    required String companyName,
-    required String email,
-    required String mobileNo,
-    required String source,
+  Future<QuotationResponse> createQuotation({
+    required String partyName,
+    required List<Map<String, dynamic>> items,
   }) async {
     // 🔐 Read credentials
     final apiKey = await _storage.read(key: 'api_key');
@@ -27,6 +25,7 @@ class CreateLeadService {
 
     final headers = <String, String>{'Content-Type': 'application/json'};
 
+    // ✅ Priority: Token auth → Session auth
     if (apiKey != null && apiSecret != null) {
       headers['Authorization'] = 'token $apiKey:$apiSecret';
     } else if (sessionId != null) {
@@ -35,12 +34,11 @@ class CreateLeadService {
 
     final request = http.Request('POST', Uri.parse(_url));
     request.headers.addAll(headers);
+
     request.body = json.encode({
-      "lead_name": leadName,
-      "company_name": companyName,
-      "email_id": email,
-      "mobile_no": mobileNo,
-      "source": source,
+      "quotation_to": "Customer",
+      "party_name": partyName,
+      "items": items,
     });
 
     final response = await request.send();
@@ -50,9 +48,9 @@ class CreateLeadService {
       final decoded = json.decode(responseBody);
 
       if (response.statusCode == 200) {
-        return decoded;
+        return quotationResponseFromJson(responseBody);
       } else {
-        throw Exception(decoded['message'] ?? 'Something went wrong');
+        throw Exception(decoded['message'] ?? 'Failed to create quotation');
       }
     } catch (e) {
       throw Exception('Invalid response format');
