@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/providers/create_lead_provider.dart';
 
 class CreateNewLead extends StatefulWidget {
   const CreateNewLead({super.key});
@@ -13,15 +15,22 @@ class _CreateNewLeadState extends State<CreateNewLead> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _orgNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _mobileController = TextEditingController();
 
   // 2. Variable for the dropdown source
   String? _selectedSource;
   final List<String> _sourceOptions = [
-    'LinkedIn',
-    'Website',
-    'Referral',
-    'Cold Call',
+    'Walk In',
+    'Campaign',
+    'Customer\'s Vendor',
+    'Mass Mailing',
+    'Supplier Reference',
+    'Exhibition',
+    'Cold Calling',
     'Advertisement',
+    'Reference',
+    'Existing Customer',
     'Other',
   ];
 
@@ -29,20 +38,53 @@ class _CreateNewLeadState extends State<CreateNewLead> {
   void dispose() {
     _firstNameController.dispose();
     _orgNameController.dispose();
+    _emailController.dispose();
+    _mobileController.dispose();
     super.dispose();
   }
 
   // 3. Method to handle form submission
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Call your API or Provider here
-      print("Name: ${_firstNameController.text}");
-      print("Org: ${_orgNameController.text}");
-      print("Source: $_selectedSource");
+      final provider = Provider.of<CreateLeadProvider>(context, listen: false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lead Created Successfully')),
+      await provider.createLead(
+        leadName: _firstNameController.text.trim(),
+        companyName: _orgNameController.text.trim(),
+        email: _emailController.text.trim(),
+        mobileNo: _mobileController.text.trim(),
+        source: _selectedSource!,
       );
+
+      if (!mounted) return;
+
+      if (provider.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${provider.errorMessage}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lead Created Successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Clear form after successful submission
+        _firstNameController.clear();
+        _orgNameController.clear();
+        _emailController.clear();
+        _mobileController.clear();
+        setState(() {
+          _selectedSource = null;
+        });
+
+        // Optionally navigate back
+        // Navigator.pop(context);
+      }
     }
   }
 
@@ -54,7 +96,6 @@ class _CreateNewLeadState extends State<CreateNewLead> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        // Using standard back button color to match text
         iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
         title: const Text(
           'Create New Lead',
@@ -66,96 +107,162 @@ class _CreateNewLeadState extends State<CreateNewLead> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      body: Consumer<CreateLeadProvider>(
+        builder: (context, provider, child) {
+          return Stack(
             children: [
-              // --- First Name ---
-              _buildLabel('First Name'),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _firstNameController,
-                decoration: _inputDecoration('Enter first name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- First Name ---
+                      _buildLabel('First Name'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _firstNameController,
+                        decoration: _inputDecoration('Enter first name'),
+                        enabled: !provider.isLoading,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
 
-              // --- Organization Name ---
-              _buildLabel('Organization Name'),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _orgNameController,
-                decoration: _inputDecoration('Enter organization name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an organization';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
+                      // --- Organization Name ---
+                      _buildLabel('Organization Name'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _orgNameController,
+                        decoration: _inputDecoration('Enter organization name'),
+                        enabled: !provider.isLoading,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter an organization';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
 
-              // --- Source (Dropdown) ---
-              _buildLabel('Source'),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSource,
-                decoration: _inputDecoration('Select source'),
-                items: _sourceOptions.map((String source) {
-                  return DropdownMenuItem<String>(
-                    value: source,
-                    child: Text(source),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedSource = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a source';
-                  }
-                  return null;
-                },
-              ),
+                      // --- Email ---
+                      _buildLabel('Email'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: _inputDecoration('Enter email address'),
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: !provider.isLoading,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter an email';
+                          }
+                          // Basic email validation
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
 
-              const SizedBox(height: 40),
+                      // --- Mobile Number ---
+                      _buildLabel('Mobile Number'),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _mobileController,
+                        decoration: _inputDecoration('Enter mobile number'),
+                        keyboardType: TextInputType.phone,
+                        enabled: !provider.isLoading,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a mobile number';
+                          }
+                          // Basic phone validation (adjust regex based on your requirements)
+                          if (value.length < 10) {
+                            return 'Please enter a valid mobile number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
 
-              // --- Submit Button ---
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF1D4ED8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Create Lead',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      // --- Source (Dropdown) ---
+                      _buildLabel('Source'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedSource,
+                        decoration: _inputDecoration('Select source'),
+                        items: _sourceOptions.map((String source) {
+                          return DropdownMenuItem<String>(
+                            value: source,
+                            child: Text(source),
+                          );
+                        }).toList(),
+                        onChanged: provider.isLoading
+                            ? null
+                            : (String? newValue) {
+                                setState(() {
+                                  _selectedSource = newValue;
+                                });
+                              },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a source';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // --- Submit Button ---
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: provider.isLoading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1D4ED8),
+                            disabledBackgroundColor: Colors.grey,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: provider.isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Create Lead',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -170,7 +277,7 @@ class _CreateNewLeadState extends State<CreateNewLead> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none, // Clean look without borders by default
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -184,6 +291,10 @@ class _CreateNewLeadState extends State<CreateNewLead> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1),
       ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
     );
   }
 
@@ -194,7 +305,7 @@ class _CreateNewLeadState extends State<CreateNewLead> {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF64748B), // Slate gray for labels
+        color: Color(0xFF64748B),
       ),
     );
   }
