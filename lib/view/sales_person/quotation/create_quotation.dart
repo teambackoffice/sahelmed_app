@@ -18,6 +18,7 @@ class QuotationItem {
   String description;
   double quantity;
   double rate;
+  String uom;
   File? image;
   String? imageUrl;
 
@@ -28,6 +29,7 @@ class QuotationItem {
     this.description = '',
     this.quantity = 1.0,
     this.rate = 0.0,
+    this.uom = 'Nos',
     this.image,
     this.imageUrl,
   });
@@ -41,7 +43,10 @@ class QuotationItem {
       'description': description,
       'qty': quantity,
       'rate': rate,
+      'uom': uom,
       'amount': amount,
+      if (image != null) 'image': image!.path.split('/').last,
+      if (image != null) 'image_file': image,
     };
   }
 }

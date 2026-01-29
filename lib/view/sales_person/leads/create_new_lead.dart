@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/create_lead_provider.dart';
 
@@ -178,16 +179,44 @@ class _CreateNewLeadState extends State<CreateNewLead> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _mobileController,
-                        decoration: _inputDecoration('Enter mobile number'),
+                        decoration: _inputDecoration('Enter mobile number')
+                            .copyWith(
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 12.0,
+                                  right: 8.0,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      '+971',
+                                      style: TextStyle(
+                                        color: Color(0xFF1E293B),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                            ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
+                        ],
                         enabled: !provider.isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a mobile number';
                           }
-                          // Basic phone validation (adjust regex based on your requirements)
-                          if (value.length < 10) {
-                            return 'Please enter a valid mobile number';
+                          if (value.length != 9) {
+                            return 'Please enter 9 digits';
                           }
                           return null;
                         },

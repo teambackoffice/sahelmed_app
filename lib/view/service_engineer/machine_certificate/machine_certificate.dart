@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/modal/get_machine_service_modal.dart';
+import 'package:sahelmed_app/providers/get_machine_service_certi_provider.dart';
 import 'package:sahelmed_app/view/service_engineer/machine_certificate/machine_certifcate_detail.dart';
 
 class MachineServiceCertificate extends StatefulWidget {
@@ -11,78 +14,29 @@ class MachineServiceCertificate extends StatefulWidget {
 }
 
 class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
-  // Sample data - replace with your API call
-  List<Map<String, dynamic>> certificates = [
-    {
-      'customer_name': 'ABC Healthcare Ltd',
-      'machine_name': 'X-Ray Machine Model 2000',
-      'service_type': 'AMC',
-      'visit_reference': 'VST-2024-001',
-      'date': '2024-01-15',
-      'validity': '2024-12-31',
-    },
-    {
-      'customer_name': 'XYZ Medical Center',
-      'machine_name': 'CT Scanner Pro',
-      'service_type': 'PPM',
-      'visit_reference': 'VST-2024-002',
-      'date': '2026-01-22', // Today's date for testing
-      'validity': '2026-07-18',
-    },
-    {
-      'customer_name': 'City Hospital',
-      'machine_name': 'MRI Scanner',
-      'service_type': 'AMC',
-      'visit_reference': 'VST-2024-003',
-      'date': '2025-01-19', // Today's date for testing
-      'validity': '2025-12-31',
-    },
-    {
-      'customer_name': 'City Hospital',
-      'machine_name': 'MRI Scanner',
-      'service_type': 'AMC',
-      'visit_reference': 'VST-2024-003',
-      'date': '2026-01-22', // Today's date for testing
-      'validity': '2025-12-31',
-    },
-  ];
-
-  bool isLoading = false;
-  bool showTodayOnly = true; // Start with today's filter active
+  bool showTodayOnly = true;
 
   @override
   void initState() {
     super.initState();
-    fetchCertificates();
-  }
-
-  Future<void> fetchCertificates() async {
-    setState(() => isLoading = true);
-
-    // Replace with your actual API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Sort by date - most recent first
-    certificates.sort((a, b) {
-      try {
-        final dateA = DateTime.parse(a['date']);
-        final dateB = DateTime.parse(b['date']);
-        return dateB.compareTo(dateA);
-      } catch (e) {
-        return 0;
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context
+          .read<GetMachineServiceProvider>()
+          .fetchMachineServiceCertificates();
     });
-
-    setState(() => isLoading = false);
   }
 
-  List<Map<String, dynamic>> get displayCertificates {
+  List<Certificate> get displayCertificates {
+    final provider = context.watch<GetMachineServiceProvider>();
+    final certificates = provider.certificates;
+
     if (!showTodayOnly) return certificates;
 
     final today = DateTime.now();
     return certificates.where((cert) {
       try {
-        final certDate = DateTime.parse(cert['date']);
+        final certDate = cert.visitDate;
+        if (certDate == null) return false;
         return certDate.year == today.year &&
             certDate.month == today.month &&
             certDate.day == today.day;
@@ -92,13 +46,15 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
     }).toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final displayCerts = displayCertificates;
-    final todayCount = certificates.where((cert) {
+  int get todayCount {
+    final provider = context.watch<GetMachineServiceProvider>();
+    final certificates = provider.certificates;
+
+    final today = DateTime.now();
+    return certificates.where((cert) {
       try {
-        final today = DateTime.now();
-        final certDate = DateTime.parse(cert['date']);
+        final certDate = cert.visitDate;
+        if (certDate == null) return false;
         return certDate.year == today.year &&
             certDate.month == today.month &&
             certDate.day == today.day;
@@ -106,6 +62,13 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
         return false;
       }
     }).length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<GetMachineServiceProvider>();
+    final displayCerts = displayCertificates;
+    final todayCountValue = todayCount;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -130,7 +93,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
       body: Column(
         children: [
           // Today's Filter Banner
-          if (showTodayOnly && todayCount > 0)
+          if (showTodayOnly && todayCountValue > 0)
             Container(
               width: double.infinity,
               margin: const EdgeInsets.all(16),
@@ -175,7 +138,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '$todayCount certificate${todayCount > 1 ? 's' : ''} created today',
+                          '$todayCountValue certificate${todayCountValue > 1 ? 's' : ''} created today',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 13,
@@ -196,7 +159,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
             ),
 
           // Show all button when filter is closed
-          if (!showTodayOnly && todayCount > 0)
+          if (!showTodayOnly && todayCountValue > 0)
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -205,7 +168,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
                   setState(() => showTodayOnly = true);
                 },
                 icon: const Icon(Icons.today_rounded, size: 18),
-                label: Text('Show Today\'s Certificates ($todayCount)'),
+                label: Text('Show Today\'s Certificates ($todayCountValue)'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.blue.shade700,
                   side: BorderSide(color: Colors.blue.shade300, width: 1.5),
@@ -220,9 +183,36 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
               ),
             ),
 
+          // Error Message
+          if (provider.errorMessage != null)
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      provider.errorMessage!,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Content
           Expanded(
-            child: isLoading
+            child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : displayCerts.isEmpty
                 ? Center(
@@ -255,7 +245,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
                             color: Colors.grey.shade500,
                           ),
                         ),
-                        if (showTodayOnly && todayCount == 0) ...[
+                        if (showTodayOnly && todayCountValue == 0) ...[
                           const SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: () {
@@ -283,7 +273,7 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
                     ),
                   )
                 : RefreshIndicator(
-                    onRefresh: fetchCertificates,
+                    onRefresh: () => provider.fetchMachineServiceCertificates(),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: displayCerts.length,
@@ -314,16 +304,13 @@ class _MachineServiceCertificateState extends State<MachineServiceCertificate> {
 }
 
 class CertificateCard extends StatelessWidget {
-  final Map<String, dynamic> certificate;
+  final Certificate certificate;
   final VoidCallback? onTap;
 
   const CertificateCard({super.key, required this.certificate, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isExpired = _isExpired(certificate['validity']);
-    final daysUntilExpiry = _getDaysUntilExpiry(certificate['validity']);
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -356,13 +343,13 @@ class CertificateCard extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: _getServiceColor(
-                          certificate['service_type'],
+                          certificate.contractType,
                         ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        _getServiceIcon(certificate['service_type']),
-                        color: _getServiceColor(certificate['service_type']),
+                        _getServiceIcon(certificate.contractType),
+                        color: _getServiceColor(certificate.contractType),
                         size: 24,
                       ),
                     ),
@@ -374,7 +361,7 @@ class CertificateCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            certificate['customer_name'] ?? '',
+                            certificate.customerName ?? 'N/A',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -383,7 +370,7 @@ class CertificateCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            certificate['machine_name'] ?? '',
+                            certificate.title,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -402,22 +389,22 @@ class CertificateCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: _getServiceColor(
-                          certificate['service_type'],
+                          certificate.contractType,
                         ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _getServiceColor(
-                            certificate['service_type'],
+                            certificate.contractType,
                           ).withOpacity(0.3),
                           width: 1,
                         ),
                       ),
                       child: Text(
-                        certificate['service_type'] ?? '',
+                        _getContractTypeText(certificate.contractType),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _getServiceColor(certificate['service_type']),
+                          color: _getServiceColor(certificate.contractType),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -438,8 +425,8 @@ class CertificateCard extends StatelessWidget {
                     Expanded(
                       child: _InfoItem(
                         icon: Icons.confirmation_number_outlined,
-                        label: 'Visit Reference',
-                        value: certificate['visit_reference'] ?? '-',
+                        label: 'Certificate No',
+                        value: certificate.certificateNumber,
                         color: Colors.blue,
                       ),
                     ),
@@ -452,7 +439,7 @@ class CertificateCard extends StatelessWidget {
                       child: _InfoItem(
                         icon: Icons.calendar_today_outlined,
                         label: 'Service Date',
-                        value: _formatDate(certificate['date']),
+                        value: _formatDate(certificate.serviceDate),
                         color: Colors.purple,
                       ),
                     ),
@@ -461,52 +448,32 @@ class CertificateCard extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Validity Status
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.event_outlined,
-                        size: 20,
-                        color: Colors.grey.shade700,
+                // Status & Next Service
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(
+                        certificate.status,
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getStatusColor(certificate.status),
+                        width: 1,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Expiry Date',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _formatDate(certificate['validity']),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
+                    ),
+                    child: Text(
+                      _getStatusText(certificate.status),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _getStatusColor(certificate.status),
                       ),
-                      if (onTap != null)
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 16,
-                          color: Colors.grey.shade400,
-                        ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -517,52 +484,70 @@ class CertificateCard extends StatelessWidget {
     );
   }
 
-  Color _getServiceColor(String? serviceType) {
-    switch (serviceType) {
-      case 'AMC':
-        return Colors.blue.shade600;
-      case 'PPM':
+  String _getContractTypeText(ContractType type) {
+    switch (type) {
+      case ContractType.EMERGENCY:
+        return 'Emergency';
+      case ContractType.PPM:
+        return 'PPM';
+      case ContractType.EMPTY:
+        return 'N/A';
+      default:
+        return 'N/A';
+    }
+  }
+
+  Color _getServiceColor(ContractType type) {
+    switch (type) {
+      case ContractType.EMERGENCY:
+        return Colors.red.shade600;
+      case ContractType.PPM:
         return Colors.green.shade600;
+      case ContractType.EMPTY:
+        return Colors.grey.shade600;
       default:
         return Colors.grey.shade600;
     }
   }
 
-  IconData _getServiceIcon(String? serviceType) {
-    switch (serviceType) {
-      case 'AMC':
-        return Icons.shield_outlined;
-      case 'PPM':
+  IconData _getServiceIcon(ContractType type) {
+    switch (type) {
+      case ContractType.EMERGENCY:
+        return Icons.warning_outlined;
+      case ContractType.PPM:
         return Icons.build_outlined;
+      case ContractType.EMPTY:
+        return Icons.description_outlined;
       default:
         return Icons.description_outlined;
     }
   }
 
-  bool _isExpired(String? validityDate) {
-    if (validityDate == null) return false;
-    try {
-      final validity = DateTime.parse(validityDate);
-      return validity.isBefore(DateTime.now());
-    } catch (e) {
-      return false;
+  String _getStatusText(Status status) {
+    switch (status) {
+      case Status.DRAFT:
+        return 'Draft';
+      case Status.SUBMITTED:
+        return 'Submitted';
+      default:
+        return 'Unknown';
     }
   }
 
-  int _getDaysUntilExpiry(String? validityDate) {
-    if (validityDate == null) return 0;
-    try {
-      final validity = DateTime.parse(validityDate);
-      return validity.difference(DateTime.now()).inDays;
-    } catch (e) {
-      return 0;
+  Color _getStatusColor(Status status) {
+    switch (status) {
+      case Status.DRAFT:
+        return Colors.orange;
+      case Status.SUBMITTED:
+        return Colors.green;
+      default:
+        return Colors.grey;
     }
   }
 
-  String _formatDate(String? date) {
+  String _formatDate(DateTime? date) {
     if (date == null) return '-';
     try {
-      final dt = DateTime.parse(date);
       final months = [
         'Jan',
         'Feb',
@@ -577,9 +562,9 @@ class CertificateCard extends StatelessWidget {
         'Nov',
         'Dec',
       ];
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      return '${date.day} ${months[date.month - 1]} ${date.year}';
     } catch (e) {
-      return date;
+      return '-';
     }
   }
 }
