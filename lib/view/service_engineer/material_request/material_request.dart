@@ -104,14 +104,6 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
           ),
           backgroundColor: AppColors.darkNavy,
           elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                _controller.fetchRequests();
-              },
-            ),
-          ],
         ),
         body: Consumer<GetMachineRequestController>(
           builder: (context, controller, child) {
@@ -390,7 +382,8 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
                   const SizedBox(height: 16),
 
                   // Warehouse Information
-                  if (request.setWarehouse.isNotEmpty) ...[
+                  if (request.setWarehouse != null &&
+                      request.setWarehouse.isNotEmpty) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(

@@ -200,13 +200,17 @@ class _MachineServiceCertificateDetailState
                         value: _formatDate(cert.serviceDate),
                         color: Colors.purple,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        icon: Icons.event_outlined,
-                        label: 'Next Service Due',
-                        value: _formatDate(cert.nextServiceDue),
-                        color: Colors.orange,
-                      ),
+                      cert.nextServiceDue != null
+                          ? const SizedBox(height: 16)
+                          : const SizedBox(),
+                      cert.nextServiceDue != null
+                          ? _buildInfoRow(
+                              icon: Icons.event_outlined,
+                              label: 'Next Service Due',
+                              value: _formatDate(cert.nextServiceDue),
+                              color: Colors.orange,
+                            )
+                          : const SizedBox(),
                       const SizedBox(height: 16),
                       _buildInfoRow(
                         icon: Icons.calendar_month_outlined,
@@ -214,13 +218,13 @@ class _MachineServiceCertificateDetailState
                         value: _formatDate(cert.visitDate),
                         color: Colors.teal,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        icon: Icons.access_time_outlined,
-                        label: 'Visit Time',
-                        value: cert.visitTime,
-                        color: Colors.indigo,
-                      ),
+                      // const SizedBox(height: 16),
+                      // _buildInfoRow(
+                      //   icon: Icons.access_time_outlined,
+                      //   label: 'Visit Time',
+                      //   value: cert.visitTime,
+                      //   color: Colors.indigo,
+                      // ),
                       const SizedBox(height: 16),
                       _buildInfoRow(
                         icon: Icons.build_outlined,
@@ -293,73 +297,72 @@ class _MachineServiceCertificateDetailState
 
                   const SizedBox(height: 16),
 
-                  // Service Status & Results
-                  _buildInfoCard(
-                    title: 'Service Status & Results',
-                    children: [
-                      _buildInfoRow(
-                        icon: Icons.assessment_outlined,
-                        label: 'Overall Status',
-                        value: _getOverallStatusText(cert.overallServiceStatus),
-                        color: _getOverallStatusColor(
-                          cert.overallServiceStatus,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatCard(
-                              icon: Icons.build_circle_outlined,
-                              label: 'Total Machines',
-                              value: cert.totalMachinesServiced.toString(),
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildStatCard(
-                              icon: Icons.check_circle_outline,
-                              label: 'Passed',
-                              value: cert.machinesPassed.toString(),
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildStatCard(
-                              icon: Icons.cancel_outlined,
-                              label: 'Failed',
-                              value: cert.machinesFailed.toString(),
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (cert.serviceDescription != null &&
-                          cert.serviceDescription!.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _buildInfoRow(
-                          icon: Icons.description_outlined,
-                          label: 'Service Description',
-                          value: cert.serviceDescription!,
-                          color: Colors.deepOrange,
-                        ),
-                      ],
-                      if (cert.technicianComments != null &&
-                          cert.technicianComments.toString().isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _buildInfoRow(
-                          icon: Icons.notes_outlined,
-                          label: 'Technician Comments',
-                          value: cert.technicianComments.toString(),
-                          color: Colors.blueGrey,
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
+                  // // Service Status & Results
+                  // _buildInfoCard(
+                  //   title: 'Service Status & Results',
+                  //   children: [
+                  //     _buildInfoRow(
+                  //       icon: Icons.assessment_outlined,
+                  //       label: 'Overall Status',
+                  //       value: _getOverallStatusText(cert.overallServiceStatus),
+                  //       color: _getOverallStatusColor(
+                  //         cert.overallServiceStatus,
+                  //       ),
+                  //     ),
+                  //     const SizedBox(height: 16),
+                  //     Row(
+                  //       children: [
+                  //         Expanded(
+                  //           child: _buildStatCard(
+                  //             icon: Icons.build_circle_outlined,
+                  //             label: 'Total Machines',
+                  //             value: cert.totalMachinesServiced.toString(),
+                  //             color: Colors.blue,
+                  //           ),
+                  //         ),
+                  //         const SizedBox(width: 12),
+                  //         Expanded(
+                  //           child: _buildStatCard(
+                  //             icon: Icons.check_circle_outline,
+                  //             label: 'Passed',
+                  //             value: cert.machinesPassed.toString(),
+                  //             color: Colors.green,
+                  //           ),
+                  //         ),
+                  //         const SizedBox(width: 12),
+                  //         Expanded(
+                  //           child: _buildStatCard(
+                  //             icon: Icons.cancel_outlined,
+                  //             label: 'Failed',
+                  //             value: cert.machinesFailed.toString(),
+                  //             color: Colors.red,
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //     if (cert.serviceDescription != null &&
+                  //         cert.serviceDescription!.isNotEmpty) ...[
+                  //       const SizedBox(height: 16),
+                  //       _buildInfoRow(
+                  //         icon: Icons.description_outlined,
+                  //         label: 'Service Description',
+                  //         value: cert.serviceDescription!,
+                  //         color: Colors.deepOrange,
+                  //       ),
+                  //     ],
+                  //     if (cert.technicianComments != null &&
+                  //         cert.technicianComments.toString().isNotEmpty) ...[
+                  //       const SizedBox(height: 16),
+                  //       _buildInfoRow(
+                  //         icon: Icons.notes_outlined,
+                  //         label: 'Technician Comments',
+                  //         value: cert.technicianComments.toString(),
+                  //         color: Colors.blueGrey,
+                  //       ),
+                  //     ],
+                  //   ],
+                  // ),
+                  // const SizedBox(height: 16),
 
                   // Certificate Information
                   _buildInfoCard(
@@ -371,15 +374,15 @@ class _MachineServiceCertificateDetailState
                         value: _formatDate(cert.certificateIssueDate),
                         color: Colors.purple,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        icon: Icons.verified_outlined,
-                        label: 'Certificate Generated',
-                        value: cert.certificateGenerated == 1 ? 'Yes' : 'No',
-                        color: cert.certificateGenerated == 1
-                            ? Colors.green
-                            : Colors.orange,
-                      ),
+                      // const SizedBox(height: 16),
+                      // _buildInfoRow(
+                      //   icon: Icons.verified_outlined,
+                      //   label: 'Certificate Generated',
+                      //   value: cert.certificateGenerated == 1 ? 'Yes' : 'No',
+                      //   color: cert.certificateGenerated == 1
+                      //       ? Colors.green
+                      //       : Colors.orange,
+                      // ),
                       const SizedBox(height: 16),
                       _buildInfoRow(
                         icon: Icons.person_outline,

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/services/get_quotation_service.dart';
-import 'package:sahelmed_app/view/sales_person/quotation/create_quotation.dart';
+import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/create_quotation.dart';
 import 'package:sahelmed_app/modal/get_quotation_modal.dart';
 import 'package:intl/intl.dart';
 

@@ -21,15 +21,7 @@ class GetCustomerService {
       'Cookie': 'sid=$sessionId',
     };
 
-    print('🔵 REQUEST URL: $_url');
-    print('🔵 REQUEST HEADERS: $headers');
-
     final response = await http.get(Uri.parse(_url), headers: headers);
-
-    // 🔽 PRINT EVERYTHING
-    print('🟢 STATUS CODE: ${response.statusCode}');
-    print('🟢 RESPONSE HEADERS: ${response.headers}');
-    print('🟢 RESPONSE BODY: ${response.body}');
 
     if (response.statusCode == 200) {
       return customerResponseFromJson(response.body);

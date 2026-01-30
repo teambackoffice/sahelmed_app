@@ -119,7 +119,8 @@ class MaterialRequestDetail extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // Warehouse Information
-                  if (request.setWarehouse.isNotEmpty ||
+                  if ((request.setWarehouse != null &&
+                          request.setWarehouse.isNotEmpty) ||
                       request.setFromWarehouse != null)
                     _buildInfoCard(
                       title: 'Warehouse Details',
@@ -131,7 +132,8 @@ class MaterialRequestDetail extends StatelessWidget {
                             'Source Warehouse',
                             request.setFromWarehouse.toString(),
                           ),
-                        if (request.setWarehouse.isNotEmpty)
+                        if (request.setWarehouse != null &&
+                            request.setWarehouse.isNotEmpty)
                           _buildInfoRow(
                             'Target Warehouse',
                             request.setWarehouse,

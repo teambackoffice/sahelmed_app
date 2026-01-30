@@ -4,51 +4,66 @@ QuotationResponse quotationResponseFromJson(String str) =>
     QuotationResponse.fromJson(json.decode(str));
 
 class QuotationResponse {
-  final bool success;
-  final String message;
-  final String quotationId;
-  final Quotation quotation;
+  final bool? success;
+  final String? message;
+  final String? quotationId;
+  final Quotation? quotation;
 
   QuotationResponse({
-    required this.success,
-    required this.message,
-    required this.quotationId,
-    required this.quotation,
+    this.success,
+    this.message,
+    this.quotationId,
+    this.quotation,
   });
 
   factory QuotationResponse.fromJson(Map<String, dynamic> json) {
     final msg = json['message'];
+
+    // Handle case where message might be a string (error) or object (success)
+    if (msg is String) {
+      return QuotationResponse(
+        success: false,
+        message: msg,
+        quotationId: null,
+        quotation: null,
+      );
+    }
+
     return QuotationResponse(
-      success: msg['success'],
-      message: msg['message'],
-      quotationId: msg['quotation_id'],
-      quotation: Quotation.fromJson(msg['quotation']),
+      success: msg?['success'] ?? false,
+      message: msg?['message']?.toString(),
+      quotationId: msg?['quotation_id']?.toString(),
+      quotation: msg?['quotation'] != null
+          ? Quotation.fromJson(msg['quotation'])
+          : null,
     );
   }
 }
 
 class Quotation {
-  final String id;
-  final String partyName;
-  final double grandTotal;
-  final String currency;
-  final String status;
+  final String? id;
+  final String? partyName;
+  final double? grandTotal;
+  final String? currency;
+  final String? status;
 
   Quotation({
-    required this.id,
-    required this.partyName,
-    required this.grandTotal,
-    required this.currency,
-    required this.status,
+    this.id,
+    this.partyName,
+    this.grandTotal,
+    this.currency,
+    this.status,
   });
 
   factory Quotation.fromJson(Map<String, dynamic> json) {
     return Quotation(
-      id: json['id'],
-      partyName: json['party_name'],
-      grandTotal: (json['grand_total'] as num).toDouble(),
-      currency: json['currency'],
-      status: json['status'],
+      id: json['id']?.toString(),
+      partyName: json['party_name']?.toString(),
+      grandTotal: json['grand_total'] != null
+          ? (json['grand_total'] as num).toDouble()
+          : null,
+      currency: json['currency']?.toString(),
+      status: json['status']?.toString(),
     );
   }
 }

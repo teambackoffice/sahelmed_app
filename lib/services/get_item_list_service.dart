@@ -26,20 +26,7 @@ class GetItemsService {
       'Cookie': 'sid=$sessionId',
     };
 
-    /// 🔽 PRINT REQUEST
-    print('➡️ GET ITEMS API');
-    print('🔗 URL: $uri');
-    print('📤 HEADERS: $headers');
-
     final response = await http.get(uri, headers: headers);
-
-    /// 🔽 PRINT RESPONSE
-    print('⬅️ STATUS CODE: ${response.statusCode}');
-    print('⬅️ RESPONSE HEADERS: ${response.headers}');
-    print('⬅️ RESPONSE BODY:');
-    print(
-      const JsonEncoder.withIndent('  ').convert(json.decode(response.body)),
-    );
 
     if (response.statusCode == 200) {
       return itemsResponseFromJson(response.body);

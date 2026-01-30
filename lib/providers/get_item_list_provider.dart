@@ -20,7 +20,7 @@ class ItemsProvider extends ChangeNotifier {
 
     try {
       final response = await _service.fetchItems();
-      _items = response.items;
+      _items = response.message.items;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

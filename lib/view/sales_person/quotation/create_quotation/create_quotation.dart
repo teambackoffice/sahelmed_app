@@ -10,6 +10,9 @@ import 'package:sahelmed_app/providers/create_quotation_provider.dart';
 import 'package:sahelmed_app/providers/get_customer_provider.dart';
 import 'package:sahelmed_app/providers/get_item_list_provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
+import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/customer_list_dialog.dart';
+import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/item_list_dialog.dart';
+import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/lead_list_dialog.dart';
 
 class QuotationItem {
   String? id;
@@ -22,6 +25,12 @@ class QuotationItem {
   File? image;
   String? imageUrl;
 
+  // Controllers
+  late final TextEditingController nameController;
+  late final TextEditingController descriptionController;
+  late final TextEditingController quantityController;
+  late final TextEditingController rateController;
+
   QuotationItem({
     this.id,
     this.itemCode = '',
@@ -32,9 +41,25 @@ class QuotationItem {
     this.uom = 'Nos',
     this.image,
     this.imageUrl,
-  });
+  }) {
+    nameController = TextEditingController(text: name);
+    descriptionController = TextEditingController(text: description);
+    quantityController = TextEditingController(
+      text: quantity == 0.0 && quantity.toString().endsWith('.0')
+          ? quantity.toInt().toString()
+          : quantity.toString(),
+    );
+    rateController = TextEditingController(text: rate.toString());
+  }
 
   double get amount => quantity * rate;
+
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    quantityController.dispose();
+    rateController.dispose();
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -85,11 +110,18 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     // Set today's date
     dateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+  }
 
-    // Set default valid till date (30 days from now)
-    validTillController.text = DateFormat(
-      'dd-MM-yyyy',
-    ).format(DateTime.now().add(const Duration(days: 30)));
+  @override
+  void dispose() {
+    for (var item in items) {
+      item.dispose();
+    }
+    nameController.dispose();
+    companyController.dispose();
+    dateController.dispose();
+    validTillController.dispose();
+    super.dispose();
   }
 
   String get nameLabel {
@@ -103,9 +135,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
   double get subtotal => items.fold(0.0, (sum, item) => sum + item.amount);
 
-  double get taxAmount => subtotal * 0.18; // 18% tax
-
-  double get grandTotal => subtotal + taxAmount;
+  double get grandTotal => subtotal;
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -153,23 +183,122 @@ class _CreateQuotationState extends State<CreateQuotation> {
     );
 
     if (picked != null) {
-      validTillController.text = DateFormat('dd-MM-yyyy').format(picked);
+      setState(() {
+        validTillController.text = DateFormat('dd-MM-yyyy').format(picked);
+      });
     }
   }
 
   Future<void> _pickImage(int index) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+      // Show bottom sheet to choose between camera and gallery
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                /// Drag handle
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// Title
+                const Text(
+                  'Add Product Image',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// Camera option
+                _ImagePickerTile(
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Take Photo',
+                  subtitle: 'Capture using camera',
+                  color: const Color(0xFF6366F1),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+
+                const SizedBox(height: 12),
+
+                /// Gallery option
+                _ImagePickerTile(
+                  icon: Icons.photo_library_rounded,
+                  title: 'Choose from Gallery',
+                  subtitle: 'Select from your photos',
+                  color: const Color(0xFF3B82F6),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// Cancel
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    backgroundColor: const Color(0xFFF3F4F6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       );
 
-      if (pickedFile != null) {
-        setState(() {
-          items[index].image = File(pickedFile.path);
-        });
+      // If user selected a source, pick the image
+      if (source != null) {
+        final XFile? pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+
+        if (pickedFile != null) {
+          setState(() {
+            items[index].image = File(pickedFile.path);
+          });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -186,6 +315,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
   void _removeItem(int index) {
     if (items.length > 1) {
+      items[index].dispose();
       setState(() {
         items.removeAt(index);
       });
@@ -197,7 +327,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     showDialog(
       context: context,
-      builder: (context) => _CustomerSearchDialog(
+      builder: (context) => CustomerSearchDialog(
         customers: customers,
         onCustomerSelected: (customer) {
           setState(() {
@@ -216,7 +346,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     showDialog(
       context: context,
-      builder: (context) => _LeadSearchDialog(
+      builder: (context) => LeadSearchDialog(
         leads: leads,
         onLeadSelected: (lead) {
           setState(() {
@@ -235,16 +365,24 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     showDialog(
       context: context,
-      builder: (context) => _ItemSearchDialog(
+      builder: (context) => ItemSearchDialog(
         items: itemsList,
         onItemSelected: (item) {
           setState(() {
             items[index].id = item.id;
             items[index].itemCode = item.itemCode;
             items[index].name = item.itemName;
-            items[index].description = item.description;
-            items[index].rate = item.valuationRate;
+            items[index].nameController.text = item.itemName;
             items[index].imageUrl = item.image;
+
+            double rate = 0.0;
+            if (item.prices.isNotEmpty) {
+              rate = item.prices.first.rate.toDouble();
+            } else {
+              rate = item.standardRate.toDouble();
+            }
+            items[index].rate = rate;
+            items[index].rateController.text = rate.toString();
           });
         },
       ),
@@ -554,12 +692,8 @@ class _CreateQuotationState extends State<CreateQuotation> {
                                 padding: const EdgeInsets.all(20),
                                 child: Column(
                                   children: [
-                                    _buildSummaryRow('Subtotal', subtotal),
-                                    const SizedBox(height: 12),
-                                    _buildSummaryRow('Tax (18%)', taxAmount),
-                                    const SizedBox(height: 12),
-                                    const Divider(),
-                                    const SizedBox(height: 12),
+                                    // _buildSummaryRow('Subtotal', subtotal),
+                                    // const Divider(),
                                     _buildSummaryRow(
                                       'Grand Total',
                                       grandTotal,
@@ -940,7 +1074,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
             // Item Name (Read-only if selected from API)
             TextFormField(
-              initialValue: item.name,
+              controller: item.nameController,
               readOnly: item.id != null,
               onChanged: (value) {
                 setState(() => item.name = value);
@@ -999,7 +1133,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
             // Description
             TextFormField(
-              initialValue: item.description,
+              controller: item.descriptionController,
               onChanged: (value) {
                 setState(() => item.description = value);
               },
@@ -1063,7 +1197,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
                 // Quantity
                 Expanded(
                   child: TextFormField(
-                    initialValue: item.quantity.toString(),
+                    controller: item.quantityController,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       setState(() {
@@ -1122,7 +1256,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
                 // Rate
                 Expanded(
                   child: TextFormField(
-                    initialValue: item.rate.toString(),
+                    controller: item.rateController,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       setState(() {
@@ -1442,11 +1576,11 @@ class _CreateQuotationState extends State<CreateQuotation> {
   }
 
   Future<void> _submitQuotation(CreateQuotationController controller) async {
-    // Validation
-    if (nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter customer/lead name')),
-      );
+    // Validation: Ensure valid name
+    if (nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter name')));
       return;
     }
 
@@ -1460,29 +1594,35 @@ class _CreateQuotationState extends State<CreateQuotation> {
     // Prepare items data
     final itemsData = items.map((item) => item.toJson()).toList();
 
-    // Determine party name based on selection
-    String partyName = '';
+    // Determine party name: Use Selected ID if available, otherwise use Text Input (Manual Entry)
+    String partyName = nameController.text.trim();
+
     if (quotationTo == 'Customer' && selectedCustomer != null) {
       partyName = selectedCustomer!.id;
     } else if (quotationTo == 'Lead' && selectedLead != null) {
       partyName = selectedLead!.id;
-    } else {
-      partyName = nameController.text;
     }
 
     // Submit quotation
-    await controller.createQuotation(partyName: partyName, items: itemsData);
+    await controller.createQuotation(
+      quotationTo: quotationTo,
+      partyName: partyName,
+      items: itemsData,
+    );
 
     if (controller.error != null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: ${controller.error}')));
     } else if (controller.quotationResponse != null) {
+      final quotationId =
+          controller.quotationResponse!.quotationId ??
+          controller.quotationResponse!.message ??
+          'Success';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Quotation Created: ${controller.quotationResponse!.quotationId}',
-          ),
+          content: Text('Quotation Created: $quotationId'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1493,1062 +1633,70 @@ class _CreateQuotationState extends State<CreateQuotation> {
   }
 }
 
-// Customer Search Dialog
-class _CustomerSearchDialog extends StatefulWidget {
-  final List<Customer> customers;
-  final Function(Customer) onCustomerSelected;
+class _ImagePickerTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _CustomerSearchDialog({
-    required this.customers,
-    required this.onCustomerSelected,
+  const _ImagePickerTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
   });
 
   @override
-  State<_CustomerSearchDialog> createState() => _CustomerSearchDialogState();
-}
-
-class _CustomerSearchDialogState extends State<_CustomerSearchDialog> {
-  final TextEditingController searchController = TextEditingController();
-  List<Customer> filteredCustomers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    filteredCustomers = widget.customers;
-  }
-
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  void _filterCustomers(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredCustomers = widget.customers;
-      } else {
-        filteredCustomers = widget.customers
-            .where(
-              (customer) => customer.customerName.toLowerCase().contains(
-                query.toLowerCase(),
-              ),
-            )
-            .toList();
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 8,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
+        child: Row(
           children: [
-            // Header with gradient
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
               ),
-              child: Row(
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.people_outline,
-                      color: Colors.white,
-                      size: 24,
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Select Customer',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  Material(
-                    color: Colors.transparent,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                      splashRadius: 24,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF6B7280),
                     ),
                   ),
                 ],
               ),
             ),
-
-            // Search Field
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-                ),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: _filterCustomers,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Search by customer name...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                    suffixIcon: searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[600]),
-                            onPressed: () {
-                              searchController.clear();
-                              _filterCustomers('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Results count
-            if (filteredCustomers.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Text(
-                      '${filteredCustomers.length} customer${filteredCustomers.length == 1 ? '' : 's'} found',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-
-            // Customer List
-            Expanded(
-              child: filteredCustomers.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.person_search,
-                            size: 64,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No customers found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Try a different search term',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: filteredCustomers.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey[200],
-                        indent: 16,
-                        endIndent: 16,
-                      ),
-                      itemBuilder: (context, index) {
-                        final customer = filteredCustomers[index];
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              widget.onCustomerSelected(customer);
-                              Navigator.pop(context);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Avatar
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color(
-                                            0xFF3B82F6,
-                                          ).withOpacity(0.1),
-                                          const Color(
-                                            0xFF2563EB,
-                                          ).withOpacity(0.1),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        customer.customerName
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF3B82F6),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // Customer Info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          customer.customerName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFF3B82F6,
-                                                ).withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                customer.customerType,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF3B82F6),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Arrow Icon
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LeadSearchDialog extends StatefulWidget {
-  final List<Lead> leads;
-  final Function(Lead) onLeadSelected;
-
-  const _LeadSearchDialog({required this.leads, required this.onLeadSelected});
-
-  @override
-  State<_LeadSearchDialog> createState() => _LeadSearchDialogState();
-}
-
-class _LeadSearchDialogState extends State<_LeadSearchDialog> {
-  final TextEditingController searchController = TextEditingController();
-  List<Lead> filteredLeads = [];
-
-  @override
-  void initState() {
-    super.initState();
-    filteredLeads = widget.leads;
-  }
-
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  void _filterLeads(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredLeads = widget.leads;
-      } else {
-        filteredLeads = widget.leads
-            .where(
-              (lead) =>
-                  lead.leadName.toLowerCase().contains(query.toLowerCase()) ||
-                  (lead.companyName?.toLowerCase().contains(
-                        query.toLowerCase(),
-                      ) ??
-                      false),
-            )
-            .toList();
-      }
-    });
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'open':
-        return const Color(0xFF10B981);
-      case 'replied':
-        return const Color(0xFF3B82F6);
-      case 'opportunity':
-        return const Color(0xFFF59E0B);
-      case 'quotation':
-        return const Color(0xFF8B5CF6);
-      case 'lost':
-        return const Color(0xFFEF4444);
-      case 'interested':
-        return const Color(0xFF06B6D4);
-      case 'converted':
-        return const Color(0xFF059669);
-      case 'do not contact':
-        return const Color(0xFF6B7280);
-      default:
-        return const Color(0xFF6366F1);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 8,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
-        ),
-        child: Column(
-          children: [
-            // Header with gradient
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.person_search,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Select Lead',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  Material(
-                    color: Colors.transparent,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                      splashRadius: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search Field
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-                ),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: _filterLeads,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or company...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                    suffixIcon: searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[600]),
-                            onPressed: () {
-                              searchController.clear();
-                              _filterLeads('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Results count
-            if (filteredLeads.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Text(
-                      '${filteredLeads.length} lead${filteredLeads.length == 1 ? '' : 's'} found',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-
-            // Lead List
-            Expanded(
-              child: filteredLeads.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.person_search,
-                            size: 64,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No leads found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Try a different search term',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: filteredLeads.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey[200],
-                        indent: 72,
-                        endIndent: 16,
-                      ),
-                      itemBuilder: (context, index) {
-                        final lead = filteredLeads[index];
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              widget.onLeadSelected(lead);
-                              Navigator.pop(context);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Avatar
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          const Color(
-                                            0xFF3B82F6,
-                                          ).withOpacity(0.1),
-                                          const Color(
-                                            0xFF2563EB,
-                                          ).withOpacity(0.1),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        lead.leadName
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2563EB),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // Lead Info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          lead.leadName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.business,
-                                              size: 14,
-                                              color: Colors.grey[500],
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Flexible(
-                                              child: Text(
-                                                lead.companyName ??
-                                                    'No company',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey[600],
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Status Badge
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getStatusColor(
-                                        lead.status,
-                                      ).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: _getStatusColor(
-                                          lead.status,
-                                        ).withOpacity(0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      lead.status,
-                                      style: TextStyle(
-                                        color: _getStatusColor(lead.status),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemSearchDialog extends StatefulWidget {
-  final List<Item> items;
-  final Function(Item) onItemSelected;
-
-  const _ItemSearchDialog({required this.items, required this.onItemSelected});
-
-  @override
-  State<_ItemSearchDialog> createState() => _ItemSearchDialogState();
-}
-
-class _ItemSearchDialogState extends State<_ItemSearchDialog> {
-  final TextEditingController searchController = TextEditingController();
-  List<Item> filteredItems = [];
-
-  @override
-  void initState() {
-    super.initState();
-    filteredItems = widget.items;
-  }
-
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  void _filterItems(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredItems = widget.items;
-      } else {
-        filteredItems = widget.items
-            .where(
-              (item) =>
-                  item.itemName.toLowerCase().contains(query.toLowerCase()) ||
-                  item.itemCode.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 8,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white,
-        ),
-        child: Column(
-          children: [
-            // Header with gradient
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.inventory_2,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Select Item',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  Material(
-                    color: Colors.transparent,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                      splashRadius: 24,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search Field
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-                ),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: _filterItems,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Search by item name or code...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                    suffixIcon: searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[600]),
-                            onPressed: () {
-                              searchController.clear();
-                              _filterItems('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Results count
-            if (filteredItems.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Text(
-                      '${filteredItems.length} item${filteredItems.length == 1 ? '' : 's'} found',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-
-            // Item List
-            Expanded(
-              child: filteredItems.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 64,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No items found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Try a different search term',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: filteredItems.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey[200],
-                        indent: 72,
-                        endIndent: 16,
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              widget.onItemSelected(item);
-                              Navigator.pop(context);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Item Image/Icon
-                                  Container(
-                                    width: 56,
-                                    height: 56,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey[200]!,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: item.image != null
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              11,
-                                            ),
-                                            child: Image.network(
-                                              item.image!,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                    return Container(
-                                                      decoration: BoxDecoration(
-                                                        gradient:
-                                                            LinearGradient(
-                                                              colors: [
-                                                                const Color(
-                                                                  0xFF3B82F6,
-                                                                ).withOpacity(
-                                                                  0.1,
-                                                                ),
-                                                                const Color(
-                                                                  0xFF2563EB,
-                                                                ).withOpacity(
-                                                                  0.1,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              11,
-                                                            ),
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons
-                                                            .inventory_2_outlined,
-                                                        color: Color(
-                                                          0xFF2563EB,
-                                                        ),
-                                                        size: 28,
-                                                      ),
-                                                    );
-                                                  },
-                                            ),
-                                          )
-                                        : Container(
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  const Color(
-                                                    0xFF3B82F6,
-                                                  ).withOpacity(0.1),
-                                                  const Color(
-                                                    0xFF2563EB,
-                                                  ).withOpacity(0.1),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(11),
-                                            ),
-                                            child: const Icon(
-                                              Icons.inventory_2_outlined,
-                                              color: Color(0xFF2563EB),
-                                              size: 28,
-                                            ),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // Item Info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.itemName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[200],
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                item.itemCode,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Colors.grey[700],
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFF10B981,
-                                                ).withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                '₹${item.valuationRate.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF2563EB),
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Arrow Icon
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Color(0xFF9CA3AF),
             ),
           ],
         ),

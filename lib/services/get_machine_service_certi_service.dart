@@ -26,18 +26,8 @@ class GetMachineServiceService {
     final request = http.Request('GET', Uri.parse(_url));
     request.headers.addAll(headers);
 
-    // 📤 PRINT REQUEST DETAILS
-    print('📤 REQUEST URL: $_url');
-    print('📤 REQUEST HEADERS: $headers');
-
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();
-
-    // 📥 PRINT RESPONSE DETAILS
-    print('📥 STATUS CODE: ${response.statusCode}');
-    print('📥 REASON PHRASE: ${response.reasonPhrase}');
-    print('📥 RESPONSE HEADERS: ${response.headers}');
-    print('📥 RESPONSE BODY: $responseBody');
 
     if (response.statusCode == 200) {
       return getMachineServiceModalClassFromJson(responseBody);

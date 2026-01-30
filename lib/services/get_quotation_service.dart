@@ -19,18 +19,10 @@ class GetQuotationService {
 
     final uri = Uri.parse(_baseUrl);
 
-    print('➡️ REQUEST URL: $uri');
-    print('➡️ COOKIE: session_id=$sessionId');
-
     final response = await http.get(
       uri,
       headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sessionId'},
     );
-
-    print('================ API RESPONSE ================');
-    print('STATUS CODE : ${response.statusCode}');
-    print('BODY        : ${response.body}');
-    print('================================================');
 
     if (response.statusCode == 200) {
       return getQuotationModalClassFromJson(response.body);

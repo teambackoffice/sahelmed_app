@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
@@ -16,11 +17,22 @@ class ServiceEngineerHomepage extends StatefulWidget {
 }
 
 class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
   String fullName = '';
 
   @override
   void initState() {
     super.initState();
+    _loadFullName();
+  }
+
+  Future<void> _loadFullName() async {
+    final name = await _storage.read(key: 'full_name');
+
+    setState(() {
+      fullName = name ?? '';
+    });
   }
 
   void showLogoutDialog(BuildContext context) async {

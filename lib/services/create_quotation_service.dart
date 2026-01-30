@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:sahelmed_app/modal/create_quotation_response.dart';
+import 'package:mime/mime.dart';
+
 import '../config/api_constant.dart';
+import '../modal/create_quotation_response.dart';
 
 class CreateQuotationService {
   static const String _url =
@@ -12,118 +15,155 @@ class CreateQuotationService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<QuotationResponse> createQuotation({
+    required String quotationTo,
     required String partyName,
     required List<Map<String, dynamic>> items,
+    String? transactionDate,
+    String? validTill,
+    String? orderType,
   }) async {
-    print('🚀 CREATE QUOTATION SERVICE STARTED');
-    print('🌐 API URL: $_url');
-
-    // 🔐 Read credentials
+    // 🔐 AUTH DATA
     final apiKey = await _storage.read(key: 'api_key');
     final apiSecret = await _storage.read(key: 'api_secret');
     final sessionId = await _storage.read(key: 'session_id');
 
-    print('🔐 apiKey: $apiKey');
-    print('🔐 apiSecret: ${apiSecret != null ? '****' : null}');
-    print('🍪 sessionId: $sessionId');
-
-    if (sessionId == null && (apiKey == null || apiSecret == null)) {
-      print('❌ No valid authentication found');
+    if (apiKey == null && apiSecret == null && sessionId == null) {
       throw Exception('Session expired. Please login again.');
     }
 
-    // Headers
-    final headers = <String, String>{};
-
-    if (apiKey != null && apiSecret != null) {
-      headers['Authorization'] = 'token $apiKey:$apiSecret';
-      print('✅ Using TOKEN authentication');
-    } else if (sessionId != null) {
-      headers['Cookie'] = 'sid=$sessionId';
-      print('✅ Using SESSION authentication');
-    }
-
-    print('📤 REQUEST HEADERS: $headers');
-
-    final request = http.MultipartRequest('POST', Uri.parse(_url));
-    request.headers.addAll(headers);
-
-    request.fields['quotation_to'] = "Customer";
-    request.fields['party_name'] = partyName;
-
-    print('📦 FIELD quotation_to: Customer');
-    print('📦 FIELD party_name: $partyName');
-
-    List<Map<String, dynamic>> processedItems = [];
-
-    print('📋 RAW ITEMS COUNT: ${items.length}');
+    // 🔹 PREPARE ITEMS AND CONVERT IMAGES TO BASE64 DATA URI
+    List<Map<String, dynamic>> finalItems = [];
 
     for (int i = 0; i < items.length; i++) {
-      final itemMap = Map<String, dynamic>.from(items[i]);
-      print('➡️ Processing item $i: $itemMap');
+      final item = Map<String, dynamic>.from(items[i]);
 
-      if (itemMap.containsKey('image_file') && itemMap['image_file'] is File) {
-        final File imageFile = itemMap['image_file'];
-        final String fileName = imageFile.path.split('/').last;
+      // 📷 IMAGE HANDLING - Convert to Base64 Data URI
+      if (item.containsKey('image_file')) {
+        if (item['image_file'] is File) {
+          final File imageFile = item['image_file'];
+          final String fileName = imageFile.path.split('/').last;
 
-        print('🖼️ Image detected: $fileName');
+          if (await imageFile.exists()) {
+            // Read file as bytes
+            final bytes = await imageFile.readAsBytes();
 
-        itemMap['image_view'] = fileName;
+            // Detect MIME type
+            final mimeType =
+                lookupMimeType(imageFile.path, headerBytes: bytes) ??
+                'image/jpeg';
 
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'files',
-            imageFile.path,
-            filename: fileName,
-          ),
-        );
+            // Convert to base64
+            final base64Image = base64Encode(bytes);
 
-        print('📎 Image attached to request');
+            // Create data URI (data:image/png;base64,...)
+            final dataUri = 'data:$mimeType;base64,$base64Image';
 
-        itemMap.remove('image_file');
-      }
+            // Backend expects these exact field names
+            item['image_b64'] = dataUri;
+            item['image_filename'] = fileName;
 
-      processedItems.add(itemMap);
+            // Remove the old fields
+            item.remove('image');
+            item.remove('image_file');
+          } else {}
+        } else {}
+      } else {}
+
+      finalItems.add(item);
     }
 
-    final itemsJson = json.encode(processedItems);
-    request.fields['items'] = itemsJson;
+    // ============= JSON POST REQUEST =============
+    final headers = <String, String>{'Content-Type': 'application/json'};
 
-    print('🧾 FINAL ITEMS JSON: $itemsJson');
-    print('📎 TOTAL FILES ATTACHED: ${request.files.length}');
-    print('📤 SENDING REQUEST...');
+    // 🔐 SET AUTHENTICATION HEADERS
+    if (apiKey != null && apiSecret != null) {
+      headers['Authorization'] = 'token $apiKey:$apiSecret';
+    } else if (sessionId != null) {
+      headers['Authorization'] = 'token $sessionId';
+      headers['Cookie'] = 'sid=$sessionId';
+    }
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+    // 🔹 BUILD JSON BODY (matching backend format exactly)
+    final body = {
+      'quotation_to': quotationTo,
+      'party_name': partyName,
+      'items': finalItems,
+    };
 
-    print('📥 RESPONSE STATUS CODE: ${response.statusCode}');
-    print('📥 RESPONSE BODY: $responseBody');
+    if (transactionDate != null) {
+      body['transaction_date'] = transactionDate;
+    }
+    if (validTill != null) {
+      body['valid_till'] = validTill;
+    }
+    if (orderType != null) {
+      body['order_type'] = orderType;
+    }
 
+    final jsonBody = jsonEncode(body);
+
+    if (finalItems.isNotEmpty && finalItems.first.containsKey('image_b64')) {
+      final sampleItem = Map<String, dynamic>.from(finalItems.first);
+      if (sampleItem['image_b64'] != null &&
+          sampleItem['image_b64'].length > 100) {
+        final b64String = sampleItem['image_b64'] as String;
+        sampleItem['image_b64'] =
+            '${b64String.substring(0, 50)}... [TRUNCATED ${b64String.length} chars]';
+      }
+    }
+
+    // 🚀 SEND REQUEST
+    final response = await http.post(
+      Uri.parse(_url),
+      headers: headers,
+      body: jsonBody,
+    );
+
+    return _handleResponse(response.statusCode, response.body);
+  }
+
+  QuotationResponse _handleResponse(int statusCode, String responseBody) {
+    // 🔍 TRY JSON DECODE
     try {
       final decoded = json.decode(responseBody);
-      final messageData = decoded['message'];
+    } catch (e) {}
 
-      // Check if 'message' is a map and has a 'success' field
-      if (messageData is Map<String, dynamic> &&
-          messageData['success'] == false) {
-        print('❌ API ERROR: ${messageData['message']}');
-        throw Exception(messageData['message'] ?? 'Failed to create quotation');
+    // ✅ HANDLE RESPONSE
+    if (statusCode == 200) {
+      final decoded = json.decode(responseBody);
+
+      // Check if the response indicates success or error
+      if (decoded['message'] != null && decoded['message'] is Map) {
+        final msg = decoded['message'];
+
+        if (msg['success'] == false) {
+          // Backend returned an error
+          final errorMsg = msg['message'] ?? 'Quotation creation failed';
+          final errorDetails = msg['error_details'];
+
+          if (errorDetails != null) {
+            throw Exception('$errorMsg: $errorDetails');
+          } else {
+            throw Exception(errorMsg);
+          }
+        }
       }
 
-      if (response.statusCode == 200) {
-        print('✅ QUOTATION CREATED SUCCESSFULLY');
-        return quotationResponseFromJson(responseBody);
-      } else {
-        print('❌ API ERROR: ${decoded['message']}');
-        throw Exception(decoded['message'] ?? 'Failed to create quotation');
+      return quotationResponseFromJson(responseBody);
+    } else if (statusCode == 401) {
+      throw Exception('Authentication failed. Please login again.');
+    } else {
+      try {
+        final decoded = json.decode(responseBody);
+        final errorMsg =
+            decoded['message'] ??
+            decoded['error'] ??
+            decoded['exc'] ??
+            'Quotation creation failed';
+        throw Exception(errorMsg);
+      } catch (e) {
+        throw Exception('Server error: $statusCode');
       }
-    } catch (e) {
-      print('❌ RESPONSE PARSE ERROR: $e');
-      // Rethrow if it's already an exception we threw, otherwise wrap
-      if (e.toString().contains('Failed to create quotation')) {
-        rethrow;
-      }
-      throw Exception('Failed to parse response: $e');
     }
   }
 }
