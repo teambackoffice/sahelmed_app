@@ -7,6 +7,7 @@ import 'package:sahelmed_app/providers/get_item_list_provider.dart';
 import 'package:sahelmed_app/providers/get_leads_provider.dart';
 import 'package:sahelmed_app/providers/get_machine_service_certi_provider.dart';
 import 'package:sahelmed_app/providers/get_material_request_provider.dart';
+import 'package:sahelmed_app/providers/get_mv_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
@@ -36,6 +37,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GetCustomerProvider()),
         ChangeNotifierProvider(create: (_) => ItemsProvider()),
         ChangeNotifierProvider(create: (_) => GetMachineServiceProvider()),
+        ChangeNotifierProvider(
+          create: (_) => GetMaintenanceRequestController(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:sahelmed_app/modal/get_mv_modal.dart';
 import 'package:sahelmed_app/view/service_engineer/machine_certificate/create_machine_certificate.dart';
 import 'package:sahelmed_app/view/service_engineer/material_request/create_material_request.dart';
 
 class MaintenanceVisitDetail extends StatefulWidget {
   final Map<String, dynamic> visit;
+  final Visit? visitObject; // Add this to pass the full Visit object
 
-  const MaintenanceVisitDetail({super.key, required this.visit});
+  const MaintenanceVisitDetail({
+    super.key,
+    required this.visit,
+    this.visitObject,
+  });
 
   @override
   State<MaintenanceVisitDetail> createState() => _MaintenanceVisitDetailState();
@@ -23,8 +29,10 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
+      case 'open':
       case 'scheduled':
         return const Color(0xFF5B8DEF);
+      case 'assigned':
       case 'in progress':
         return const Color(0xFFFF9F43);
       case 'completed':
@@ -96,7 +104,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
 
   void _showStatusChangeDialog() {
     final currentStatus = _visit['status'] ?? '';
-    final statuses = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+    final statuses = ['Open', 'In Progress', 'Completed', 'Cancelled'];
 
     showModalBottomSheet(
       context: context,
@@ -118,11 +126,8 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF203A43),
-                          const Color(0xFF2C5364),
-                        ],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF203A43), Color(0xFF2C5364)],
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -191,7 +196,8 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               ),
               const SizedBox(height: 24),
               ...statuses.map((status) {
-                final isSelected = status == currentStatus;
+                final isSelected =
+                    status.toLowerCase() == currentStatus.toLowerCase();
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: Material(
@@ -386,8 +392,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          CreateMachineCertificate(), // Your page here
+                      builder: (context) => CreateMachineCertificate(),
                     ),
                   );
                   break;
@@ -395,8 +400,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          CreateMaterialRequest(), // Your page here
+                      builder: (context) => CreateMaterialRequest(),
                     ),
                   );
                   break;
@@ -410,14 +414,12 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(
-                          0xFFE74C3C,
-                        ).withOpacity(0.1), // Change background color here
+                        color: const Color(0xFFE74C3C).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.description_outlined,
-                        color: Color(0xFFE74C3C), // Change icon color here
+                        color: Color(0xFFE74C3C),
                         size: 20,
                       ),
                     ),
@@ -431,9 +433,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(
-                                0xFF2C3E50,
-                              ), // Change title text color here
+                              color: Color(0xFF2C3E50),
                             ),
                           ),
                           SizedBox(height: 2),
@@ -441,9 +441,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                             'Create certificate',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(
-                                0xFF95A5A6,
-                              ), // Change subtitle text color here
+                              color: Color(0xFF95A5A6),
                             ),
                           ),
                         ],
@@ -500,7 +498,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
           ),
         ],
       ),
-
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -512,8 +509,13 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 const SizedBox(height: 20),
                 _buildCustomerInfoCard(),
                 const SizedBox(height: 20),
-                _buildEquipmentCard(),
-                const SizedBox(height: 20),
+                // Show all items/purposes
+                if (widget.visitObject != null &&
+                    widget.visitObject!.purposes.isNotEmpty)
+                  _buildItemsCard(),
+                if (widget.visitObject != null &&
+                    widget.visitObject!.purposes.isNotEmpty)
+                  const SizedBox(height: 20),
                 _buildScheduleCard(),
                 const SizedBox(height: 20),
               ],
@@ -593,36 +595,38 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Container(
-                    //   padding: const EdgeInsets.symmetric(
-                    //     horizontal: 14,
-                    //     vertical: 8,
-                    //   ),
-                    //   decoration: BoxDecoration(
-                    //     color: Colors.white,
-                    //     borderRadius: BorderRadius.circular(10),
-                    //   ),
-                    //   child: Row(
-                    //     mainAxisSize: MainAxisSize.min,
-                    //     children: [
-                    //       Icon(
-                    //         Icons.build_circle_rounded,
-                    //         size: 16,
-                    //         color: const Color(0xFF203A43),
-                    //       ),
-                    //       const SizedBox(width: 6),
-                    //       Text(
-                    //         _visit['maintenance_type'] ?? '',
-                    //         style: const TextStyle(
-                    //           fontSize: 14,
-                    //           color: Color(0xFF203A43),
-                    //           fontWeight: FontWeight.bold,
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
+                    if (widget.visitObject?.maintenanceSchedule != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.event_note,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              widget.visitObject!.maintenanceSchedule!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -741,34 +745,52 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               _visit['customer'] ?? '',
               Icons.account_circle_rounded,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Contact',
-              _visit['customer_contact'] ?? '',
-              Icons.phone_rounded,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Email',
-              _visit['customer_email'] ?? '',
-              Icons.email_rounded,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Site',
-              _visit['site'] ?? '',
-              Icons.location_on_rounded,
-            ),
-            if (_visit['site_address'] != null) ...[
+            if (widget.visitObject?.company != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Company',
+                widget.visitObject!.company,
+                Icons.business,
+              ),
+            ],
+            if (_visit['customer_contact']?.isNotEmpty ?? false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Contact',
+                _visit['customer_contact'] ?? '',
+                Icons.phone_rounded,
+              ),
+            ],
+            if (_visit['customer_email']?.isNotEmpty ?? false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Email',
+                _visit['customer_email'] ?? '',
+                Icons.email_rounded,
+              ),
+            ],
+            if (_visit['site']?.isNotEmpty ?? false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Site',
+                _visit['site'] ?? '',
+                Icons.location_on_rounded,
+              ),
+            ],
+            if (_visit['site_address'] != null &&
+                _visit['site_address'] != 'N/A') ...[
               const SizedBox(height: 12),
               Container(
                 margin: const EdgeInsets.only(left: 32),
@@ -803,7 +825,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
     );
   }
 
-  Widget _buildEquipmentCard() {
+  Widget _buildItemsCard() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -826,11 +848,8 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFFF9F43),
-                        const Color(0xFFFF6348),
-                      ],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF9F43), Color(0xFFFF6348)],
                     ),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
@@ -848,43 +867,214 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Text(
-                  'Equipment Details',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2C3E50),
-                    letterSpacing: -0.3,
+                const Expanded(
+                  child: Text(
+                    'Equipment & Items',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E50),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF9F43).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${widget.visitObject!.purposes.length} ${widget.visitObject!.purposes.length == 1 ? 'Item' : 'Items'}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFF6348),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            _buildDetailRow(
-              'Equipment',
-              _visit['equipment'] ?? '',
-              Icons.settings_rounded,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Model',
-              _visit['equipment_model'] ?? '',
-              Icons.category_rounded,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Serial Number',
-              _visit['equipment_serial'] ?? '',
-              Icons.qr_code_rounded,
-            ),
+            const SizedBox(height: 20),
+            ...widget.visitObject!.purposes.asMap().entries.map((entry) {
+              final index = entry.key;
+              final purpose = entry.value;
+              final isLast = index == widget.visitObject!.purposes.length - 1;
+
+              return Column(
+                children: [
+                  _buildItemCard(purpose, index + 1),
+                  if (!isLast)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1, color: Colors.grey[200]),
+                    ),
+                ],
+              );
+            }),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildItemCard(Purpose purpose, int index) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FD),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF9F43), Color(0xFFFF6348)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '$index',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      purpose.itemName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                    if (purpose.itemCode.isNotEmpty)
+                      Text(
+                        purpose.itemCode,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (purpose.serialNo != null && purpose.serialNo!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.qr_code, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'S/N: ${purpose.serialNo}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (purpose.description.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.grey[500]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Description',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        purpose.description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (purpose.workDone.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.task_alt, size: 16, color: Colors.grey[500]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Work Done',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        purpose.workDone,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -957,24 +1147,77 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               _visit['scheduled_time'] ?? '',
               Icons.access_time_rounded,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Duration',
-              _visit['estimated_duration'] ?? '',
-              Icons.timer_rounded,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Divider(height: 1, color: Colors.grey[200]),
-            ),
-            _buildDetailRow(
-              'Assigned To',
-              _visit['assigned_to'] ?? '',
-              Icons.person_rounded,
-            ),
+            if (_visit['estimated_duration']?.isNotEmpty ?? false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Duration',
+                _visit['estimated_duration'] ?? '',
+                Icons.timer_rounded,
+              ),
+            ],
+            if (_visit['assigned_to']?.isNotEmpty ?? false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              _buildDetailRow(
+                'Assigned To',
+                _visit['assigned_to'] ?? '',
+                Icons.person_rounded,
+              ),
+            ],
+            if (widget.visitObject?.completionStatus != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, color: Colors.grey[200]),
+              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FD),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_outline,
+                      size: 20,
+                      color: Color(0xFF5B8DEF),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Completion Status',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          widget.visitObject!.completionStatus,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2C3E50),
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -1044,7 +1287,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               icon: const Icon(Icons.phone_rounded, size: 20),
               color: Colors.white,
               onPressed: () {
-                // TODO: Implement call functionality
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Calling $value'),
