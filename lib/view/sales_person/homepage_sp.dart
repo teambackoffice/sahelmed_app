@@ -40,69 +40,205 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
       listen: false,
     );
 
-    bool? confirm = await showDialog<bool>(
+    bool? confirm = await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.logout, color: Colors.blue[900]),
-            const SizedBox(width: 12),
-            const Text(
-              'Confirm Logout',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to logout?',
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          Consumer<LogoutController>(
-            builder: (_, controller, __) {
-              return ElevatedButton(
-                onPressed: controller.isLoading
-                    ? null
-                    : () async {
-                        Navigator.pop(context, true);
-                      },
-                child: controller.isLoading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 40),
+
+              // Animated Icon
+              Container(
+                height: 80,
+                width: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF3B82F6), // Lighter Blue
+                      Color(0xFF2563EB),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue[200]!.withOpacity(0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.power_settings_new_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Title
+              const Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3142),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Message
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  'Are you sure you want to\nlogout from your account?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[600],
+                    height: 1.5,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Buttons
+              Consumer<LogoutController>(
+                builder: (_, controller, __) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        // Logout Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: controller.isLoading
+                                ? null
+                                : () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: controller.isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Yes, Logout',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                          ),
                         ),
-                      )
-                    : const Text('Logout'),
-              );
-            },
+
+                        const SizedBox(height: 12),
+
+                        // Cancel Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: controller.isLoading
+                                ? null
+                                : () => Navigator.pop(context, false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
 
     if (confirm == true) {
       final success = await logoutController.logout();
-
-      if (success) {
-        // Navigate to Login Screen
+      if (success && context.mounted) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
-      } else {
+      } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(logoutController.errorMessage ?? 'Logout failed'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    logoutController.errorMessage ?? 'Logout failed',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
