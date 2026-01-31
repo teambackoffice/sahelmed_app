@@ -33,9 +33,18 @@ class LoginService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(responseBody);
+      final decoded = jsonDecode(responseBody);
 
+      // Check if the response contains an error (even with 200 status)
+      if (decoded['message'] != null && decoded['message'] is Map) {
+        if (decoded['message']['success'] == false) {
+          throw Exception(
+            decoded['message']['message'] ?? 'Invalid credentials',
+          );
+        }
+      }
+
+      if (response.statusCode == 200) {
         /// Store full response
         await _storage.write(key: 'login_response', value: jsonEncode(decoded));
 
@@ -58,7 +67,7 @@ class LoginService {
             await _writeIfNotNull('user_image', userInfo['user_image']);
           }
 
-          final employeeInfo = userInfo['employee_info'];
+          final employeeInfo = userInfo?['employee_info'];
           if (employeeInfo != null && employeeInfo is Map<String, dynamic>) {
             await _storage.write(
               key: 'employee_info',
@@ -110,16 +119,41 @@ class LoginService {
           );
         }
 
-        /// 🔐 PRINT EVERYTHING STORED
+        /// 🔐 PRINT EVERYTHING STORED (uncomment for debugging)
         // await printAllStoredValues();
 
         return decoded;
       } else {
-        final errorBody = jsonDecode(responseBody);
-        throw Exception(errorBody['message'] ?? 'Login failed');
+        // Handle non-200 status codes
+        String errorMsg = 'Login failed';
+
+        if (decoded['message'] != null) {
+          if (decoded['message'] is Map &&
+              decoded['message']['message'] != null) {
+            errorMsg = decoded['message']['message'];
+          } else if (decoded['message'] is String) {
+            errorMsg = decoded['message'];
+          }
+        } else if (decoded['exc'] != null) {
+          errorMsg = decoded['exc'];
+        }
+
+        throw Exception(errorMsg);
       }
+    } on FormatException catch (e) {
+      throw Exception('Invalid response format: ${e.message}');
+    } on http.ClientException catch (e) {
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
-      throw Exception('Login error: $e');
+      // Clean up the error message
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.replaceFirst('Exception: ', '');
+      }
+      if (errorMsg.startsWith('Login error: Exception: ')) {
+        errorMsg = errorMsg.replaceFirst('Login error: Exception: ', '');
+      }
+      throw Exception(errorMsg);
     }
   }
 
@@ -135,31 +169,59 @@ class LoginService {
   Future<void> printAllStoredValues() async {
     final allValues = await _storage.readAll();
 
+    debugPrint('========== STORED VALUES ==========');
     allValues.forEach((key, value) {
       debugPrint('$key : $value');
     });
+    debugPrint('===================================');
   }
 
   /// ============================
   /// GETTERS
   /// ============================
   Future<String?> getApiKey() async {
-    final value = await _storage.read(key: 'api_key');
-    return value;
+    return await _storage.read(key: 'api_key');
   }
 
   Future<String?> getApiSecret() async {
-    final value = await _storage.read(key: 'api_secret');
-    return value;
+    return await _storage.read(key: 'api_secret');
   }
 
   Future<String?> getSessionId() async {
-    final value = await _storage.read(key: 'session_id');
-    return value;
+    return await _storage.read(key: 'session_id');
+  }
+
+  Future<String?> getUserId() async {
+    return await _storage.read(key: 'user_id');
+  }
+
+  Future<String?> getFullName() async {
+    return await _storage.read(key: 'full_name');
+  }
+
+  Future<String?> getEmail() async {
+    return await _storage.read(key: 'email');
+  }
+
+  Future<String?> getUserImage() async {
+    return await _storage.read(key: 'user_image');
+  }
+
+  Future<String?> getEmployeeName() async {
+    return await _storage.read(key: 'employee_name');
+  }
+
+  Future<String?> getEmployeeId() async {
+    return await _storage.read(key: 'employee_id');
   }
 
   Future<Map<String, dynamic>?> getUserInfo() async {
     final data = await _storage.read(key: 'user_info');
+    return data != null ? jsonDecode(data) : null;
+  }
+
+  Future<Map<String, dynamic>?> getEmployeeInfo() async {
+    final data = await _storage.read(key: 'employee_info');
     return data != null ? jsonDecode(data) : null;
   }
 
@@ -186,11 +248,6 @@ class LoginService {
     return value == 'true';
   }
 
-  Future<String?> getFullName() async {
-    final value = await _storage.read(key: 'full_name');
-    return value;
-  }
-
   Future<bool> isLoggedIn() async {
     final sessionId = await _storage.read(key: 'session_id');
     return sessionId != null && sessionId.isNotEmpty;
@@ -201,10 +258,31 @@ class LoginService {
     return data != null ? jsonDecode(data) : null;
   }
 
+  Future<String?> getHomePage() async {
+    return await _storage.read(key: 'home_page');
+  }
+
   /// ============================
   /// LOGOUT
   /// ============================
   Future<void> logout() async {
     await _storage.deleteAll();
+    debugPrint('User logged out - all data cleared');
+  }
+
+  /// ============================
+  /// CLEAR SPECIFIC DATA
+  /// ============================
+  Future<void> clearUserData() async {
+    await _storage.delete(key: 'user_info');
+    await _storage.delete(key: 'employee_info');
+    await _storage.delete(key: 'roles');
+    await _storage.delete(key: 'permissions');
+  }
+
+  Future<void> clearAuthTokens() async {
+    await _storage.delete(key: 'api_key');
+    await _storage.delete(key: 'api_secret');
+    await _storage.delete(key: 'session_id');
   }
 }
