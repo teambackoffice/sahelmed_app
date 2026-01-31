@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/providers/get_warehouse_provider.dart';
 
 class CreateMaterialRequest extends StatefulWidget {
   const CreateMaterialRequest({super.key});
@@ -10,7 +12,7 @@ class CreateMaterialRequest extends StatefulWidget {
 
 class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
   final _formKey = GlobalKey<FormState>();
-  final _addItemFormKey = GlobalKey<FormState>(); // Separate key for the dialog
+  final _addItemFormKey = GlobalKey<FormState>();
 
   // Controllers
   final TextEditingController _itemCodeController = TextEditingController();
@@ -19,29 +21,12 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
   // State Variables
   String? _selectedPurpose;
   String? _selectedWarehouse;
-  String? _selectedUom; // Changed controller to variable for Dropdown
+  String? _selectedUom;
   DateTime _transactionDate = DateTime.now();
   DateTime _requiredByDate = DateTime.now().add(const Duration(days: 7));
 
   // Data
-  final List<String> purposes = [
-    'Purchase',
-    'Material Transfer',
-    'Material Issue',
-    'Manufacture',
-    'Customer Provided',
-  ];
-
-  final List<String> warehouses = [
-    'Main Warehouse',
-    'Stores',
-    'Production Warehouse',
-    'Finished Goods',
-    'Raw Materials',
-    'Work In Progress',
-    'Rejected Warehouse',
-    'Transit Warehouse',
-  ];
+  final List<String> purposes = ['Purchase', 'Material Issue'];
 
   final List<String> uomList = [
     'Nos',
@@ -58,6 +43,15 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
 
   List<Map<String, dynamic>> items = [];
 
+  @override
+  void initState() {
+    super.initState();
+    // Fetch warehouses when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GetWarehouseProvider>().fetchWarehouses();
+    });
+  }
+
   // --- Logic Methods ---
 
   void _addItem() {
@@ -68,12 +62,11 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
           'qty': _quantityController.text,
           'uom': _selectedUom,
         });
-        // Clear inputs
         _itemCodeController.clear();
         _quantityController.clear();
         _selectedUom = null;
       });
-      Navigator.pop(context); // Close the dialog
+      Navigator.pop(context);
     }
   }
 
@@ -113,6 +106,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
 
   void _submitRequest() {
     if (_formKey.currentState!.validate() && items.isNotEmpty) {
+      // TODO: Implement actual API submission
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -149,14 +143,10 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
     }
   }
 
-  // --- UI Components ---
-
-  // Helper to format date nicely
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  // The AlertDialog for adding items
   void _showAddItemDialog() {
     showDialog(
       context: context,
@@ -192,14 +182,13 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 8),
-                // Item Code Input
                 TextFormField(
                   controller: _itemCodeController,
                   decoration: InputDecoration(
                     labelText: 'Item Name / Code',
-                    labelStyle: TextStyle(fontSize: 14),
+                    labelStyle: const TextStyle(fontSize: 14),
                     hintText: 'Enter item name or code',
-                    hintStyle: TextStyle(fontSize: 14),
+                    hintStyle: const TextStyle(fontSize: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -213,8 +202,6 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                   validator: (v) => v!.isEmpty ? 'Item name is required' : null,
                 ),
                 const SizedBox(height: 16),
-
-                // Row for Qty and UOM
                 Row(
                   children: [
                     Expanded(
@@ -226,9 +213,9 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                         ),
                         decoration: InputDecoration(
                           labelText: 'Quantity',
-                          labelStyle: TextStyle(fontSize: 14),
+                          labelStyle: const TextStyle(fontSize: 14),
                           hintText: '0.00',
-                          hintStyle: TextStyle(fontSize: 14),
+                          hintStyle: const TextStyle(fontSize: 14),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -247,7 +234,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                       flex: 2,
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
-                        initialValue: _selectedUom,
+                        value: _selectedUom,
                         decoration: InputDecoration(
                           labelText: 'Unit',
                           labelStyle: TextStyle(
@@ -256,42 +243,8 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                             fontWeight: FontWeight.w500,
                           ),
                           hintText: 'Select unit',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade400,
-                          ),
-
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.indigo,
-                              width: 2,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.red.shade400,
-                              width: 1,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.red.shade400,
-                              width: 2,
-                            ),
                           ),
                           filled: true,
                           fillColor: Colors.grey.shade50,
@@ -300,37 +253,9 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                             vertical: 16,
                           ),
                         ),
-                        dropdownColor: Colors.white,
-                        elevation: 8,
-                        menuMaxHeight: 300,
                         items: uomList
                             .map(
-                              (u) => DropdownMenuItem(
-                                value: u,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.indigo.shade50,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        u,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.indigo.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              (u) => DropdownMenuItem(value: u, child: Text(u)),
                             )
                             .toList(),
                         onChanged: (v) => setState(() => _selectedUom = v),
@@ -351,44 +276,17 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
               setState(() => _selectedUom = null);
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey.shade600,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            child: const Text(
-              'CANCEL',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-            ),
+            child: const Text('CANCEL'),
           ),
           ElevatedButton(
             onPressed: _addItem,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
             ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, size: 20),
-                SizedBox(width: 4),
-                Text(
-                  'ADD ITEM',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+            child: const Text('ADD ITEM'),
           ),
         ],
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
       ),
     );
   }
@@ -407,359 +305,409 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      // Submit button fixed at bottom
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- Header Section ---
-              Text(
-                'Details',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedPurpose,
-                      decoration: InputDecoration(
-                        labelText: 'Purpose',
-                        prefixIcon: Icon(
-                          Icons.assignment_ind_outlined,
-                          color: Colors.indigo.shade300,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                      ),
-                      items: purposes
-                          .map(
-                            (p) => DropdownMenuItem(value: p, child: Text(p)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedPurpose = v),
-                      validator: (v) =>
-                          v == null ? 'Please select a purpose' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    // Warehouse Dropdown
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedWarehouse,
-                      decoration: InputDecoration(
-                        labelText: 'Warehouse',
-                        prefixIcon: Icon(
-                          Icons.warehouse_outlined,
-                          color: Colors.indigo.shade300,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                      ),
-                      items: warehouses
-                          .map(
-                            (w) => DropdownMenuItem(value: w, child: Text(w)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedWarehouse = v),
-                      validator: (v) =>
-                          v == null ? 'Please select a warehouse' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectDate(context, true),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Transaction Date',
-                                prefixIcon: Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.indigo.shade300,
-                                  size: 20,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              child: Text(_formatDate(_transactionDate)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectDate(context, false),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Required By',
-                                prefixIcon: Icon(
-                                  Icons.event_available,
-                                  color: Colors.orange.shade300,
-                                  size: 20,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              child: Text(_formatDate(_requiredByDate)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // --- Items Section Header ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Consumer<GetWarehouseProvider>(
+        builder: (context, warehouseProvider, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Items List',
+                    'Details',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: _showAddItemDialog,
-                    icon: const Icon(
-                      Icons.add_circle,
-                      color: AppColors.darkNavy,
-                    ),
-                    label: const Text(
-                      'Add Item',
-                      style: TextStyle(color: AppColors.darkNavy),
-                    ),
-                    style: TextButton.styleFrom(foregroundColor: Colors.indigo),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // --- Items List Display ---
-              if (items.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.checklist_rtl_rounded,
-                        size: 60,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No items added yet',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 16,
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _showAddItemDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo.shade50,
-                          foregroundColor: Colors.indigo,
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Add First Item',
-                          style: TextStyle(
-                            color: AppColors.darkNavy,
-                            fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _selectedPurpose,
+                          decoration: InputDecoration(
+                            labelText: 'Purpose',
+                            prefixIcon: Icon(
+                              Icons.assignment_ind_outlined,
+                              color: Colors.indigo.shade300,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade200,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
                           ),
+                          items: purposes
+                              .map(
+                                (p) =>
+                                    DropdownMenuItem(value: p, child: Text(p)),
+                              )
+                              .toList(),
+                          onChanged: (v) =>
+                              setState(() => _selectedPurpose = v),
+                          validator: (v) =>
+                              v == null ? 'Please select a purpose' : null,
                         ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: items.length,
-                  separatorBuilder: (c, i) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Dismissible(
-                      key: Key('${item['itemCode']}_$index'),
-                      direction: DismissDirection.endToStart,
-                      onDismissed: (_) => _removeItem(index),
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(16),
+                        const SizedBox(height: 16),
+
+                        // 🔥 INTEGRATED WAREHOUSE DROPDOWN
+                        DropdownButtonFormField<String>(
+                          value: _selectedWarehouse,
+                          decoration: InputDecoration(
+                            labelText: 'Warehouse',
+                            prefixIcon: Icon(
+                              Icons.warehouse_outlined,
+                              color: Colors.indigo.shade300,
+                            ),
+                            suffixIcon: warehouseProvider.isLoading
+                                ? Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.indigo.shade300,
+                                      ),
+                                    ),
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade200,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          items: warehouseProvider.warehouses
+                              .where((w) => !w.disabled && !w.isGroup)
+                              .map(
+                                (w) => DropdownMenuItem(
+                                  value: w.id,
+                                  child: Text(
+                                    w.warehouseName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: warehouseProvider.isLoading
+                              ? null
+                              : (v) => setState(() => _selectedWarehouse = v),
+                          validator: (v) =>
+                              v == null ? 'Please select a warehouse' : null,
                         ),
-                        child: Icon(Icons.delete, color: Colors.red.shade700),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+
+                        // Show error if warehouse fetch failed
+                        if (warehouseProvider.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red.shade700,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Failed to load warehouses',
+                                    style: TextStyle(
+                                      color: Colors.red.shade700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    context
+                                        .read<GetWarehouseProvider>()
+                                        .fetchWarehouses();
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => _selectDate(context, true),
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Transaction Date',
+                                    prefixIcon: Icon(
+                                      Icons.calendar_today,
+                                      color: Colors.indigo.shade300,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade200,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                  ),
+                                  child: Text(_formatDate(_transactionDate)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => _selectDate(context, false),
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Required By',
+                                    prefixIcon: Icon(
+                                      Icons.event_available,
+                                      color: Colors.orange.shade300,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade200,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                  ),
+                                  child: Text(_formatDate(_requiredByDate)),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Items List',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _showAddItemDialog,
+                        icon: const Icon(
+                          Icons.add_circle,
+                          color: AppColors.darkNavy,
+                        ),
+                        label: const Text(
+                          'Add Item',
+                          style: TextStyle(color: AppColors.darkNavy),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (items.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.checklist_rtl_rounded,
+                            size: 60,
+                            color: Colors.grey.shade300,
                           ),
-                          leading: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.indigo.shade50,
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No items added yet',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 16,
                             ),
-                            child: Center(
-                              child: Text(
-                                '${index + 1}',
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _showAddItemDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo.shade50,
+                              foregroundColor: Colors.indigo,
+                              elevation: 0,
+                            ),
+                            child: const Text('Add First Item'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: items.length,
+                      separatorBuilder: (c, i) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return Dismissible(
+                          key: Key('${item['itemCode']}_$index'),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (_) => _removeItem(index),
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.03),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              leading: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.indigo.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.indigo,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                item['itemCode'],
                                 style: const TextStyle(
-                                  color: Colors.indigo,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
+                              subtitle: Text(
+                                '${item['qty']} ${item['uom']}',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () => _removeItem(index),
+                              ),
                             ),
                           ),
-                          title: Text(
-                            item['itemCode'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '${item['qty']} ${item['uom']}',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.remove_circle_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () => _removeItem(index),
-                          ),
+                        );
+                      },
+                    ),
+
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _submitRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkNavy,
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                    );
-                  },
-                ),
-
-              // Extra padding for the bottom button
-              const SizedBox(height: 32),
-
-              // Larger Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkNavy,
-                    foregroundColor: Colors.white,
-                    elevation: 3,
-                    shadowColor: Colors.indigo.withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send_rounded, size: 24),
+                          SizedBox(width: 12),
+                          Text(
+                            'SUBMIT REQUEST',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.send_rounded, size: 24),
-                      SizedBox(width: 12),
-                      Text(
-                        'SUBMIT REQUEST',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

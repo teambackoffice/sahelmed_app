@@ -10,6 +10,7 @@ import 'package:sahelmed_app/providers/get_machine_service_certi_provider.dart';
 import 'package:sahelmed_app/providers/get_material_request_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
+import 'package:sahelmed_app/providers/get_warehouse_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
 import 'package:sahelmed_app/providers/post_mv_status_provider.dart';
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => UpdateVisitStatusController()),
         ChangeNotifierProvider(create: (_) => EmployeeCheckinController()),
+        ChangeNotifierProvider(create: (_) => GetWarehouseProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
