@@ -783,11 +783,13 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Divider(height: 1, color: Colors.grey[200]),
               ),
-              _buildDetailRow(
-                'Site',
-                _visit['site'] ?? '',
-                Icons.location_on_rounded,
-              ),
+              _visit['site'] == null || _visit['site'] == 'N/A'
+                  ? const SizedBox()
+                  : _buildDetailRow(
+                      'Site',
+                      _visit['site'] ?? '',
+                      Icons.location_on_rounded,
+                    ),
             ],
             if (_visit['site_address'] != null &&
                 _visit['site_address'] != 'N/A') ...[
