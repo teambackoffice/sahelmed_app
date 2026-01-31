@@ -11,6 +11,7 @@ import 'package:sahelmed_app/providers/get_mv_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
 import 'package:sahelmed_app/providers/login_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
+import 'package:sahelmed_app/providers/post_mv_status_provider.dart';
 import 'package:sahelmed_app/services/get_leads_service.dart';
 import 'package:sahelmed_app/services/get_quotation_service.dart';
 import 'package:sahelmed_app/services/login_service.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => GetMaintenanceRequestController(),
         ),
+        ChangeNotifierProvider(create: (_) => UpdateVisitStatusController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/modal/get_mv_modal.dart';
+import 'package:sahelmed_app/providers/post_mv_status_provider.dart';
 import 'package:sahelmed_app/view/service_engineer/machine_certificate/create_machine_certificate.dart';
 import 'package:sahelmed_app/view/service_engineer/material_request/create_material_request.dart';
 
 class MaintenanceVisitDetail extends StatefulWidget {
   final Map<String, dynamic> visit;
-  final Visit? visitObject; // Add this to pass the full Visit object
+  final Visit? visitObject;
 
   const MaintenanceVisitDetail({
     super.key,
@@ -44,51 +46,34 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
     }
   }
 
-  Color _getPriorityColor(String priority) {
-    switch (priority.toLowerCase()) {
-      case 'critical':
-        return const Color(0xFFFF4757);
-      case 'high':
-        return const Color(0xFFFF6348);
-      case 'medium':
-        return const Color(0xFFFFA502);
-      case 'low':
-        return const Color(0xFF7BED9F);
+  // Map UI status to API status
+  String _mapStatusToApi(String uiStatus) {
+    switch (uiStatus.toLowerCase()) {
+      case 'open':
+        return 'Open';
+      case 'in progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
       default:
-        return Colors.grey;
+        return uiStatus;
     }
   }
 
   Future<void> _updateStatus(String newStatus) async {
-    setState(() => _isUpdating = true);
-
-    try {
-      // TODO: Replace with your actual API call
-      // await ApiService.updateVisitStatus(_visit['name'], newStatus);
-
-      await Future.delayed(const Duration(seconds: 1));
-
-      setState(() {
-        _visit['status'] = newStatus;
-      });
-
+    if (widget.visitObject == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Status updated to $newStatus'),
-            backgroundColor: const Color(0xFF26C281),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Unable to update status: Visit ID not found'),
+                ),
+              ],
             ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update status: $e'),
             backgroundColor: const Color(0xFFEF5B5B),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -97,14 +82,173 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
           ),
         );
       }
+      return;
+    }
+
+    setState(() => _isUpdating = true);
+
+    try {
+      final controller = context.read<UpdateVisitStatusController>();
+
+      // Map the UI status to API status
+      final apiStatus = _mapStatusToApi(newStatus);
+
+      print(
+        '🔄 Updating visit ${widget.visitObject!.id} to status: $apiStatus',
+      );
+
+      await controller.updateVisitStatus(
+        visitId: widget.visitObject!.id,
+        visitStatus: apiStatus,
+      );
+
+      if (controller.errorMessage != null) {
+        throw Exception(controller.errorMessage);
+      }
+
+      // Update local state
+      setState(() {
+        _visit['status'] = newStatus;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Status updated to $newStatus')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF26C281),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Wait a moment for the snackbar to show
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Return true to indicate successful update and refresh the list
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      }
+    } catch (e) {
+      print('❌ Error updating status: $e');
+
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+
+      if (mounted) {
+        // Check if it's a session expired error
+        if (errorMessage.contains('Session expired') ||
+            errorMessage.contains('login again')) {
+          // Show dialog to redirect to login
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                title: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF5B5B).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.lock_clock_rounded,
+                        color: Color(0xFFEF5B5B),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Session Expired',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
+                content: const Text(
+                  'Your session has expired. Please login again to continue.',
+                  style: TextStyle(fontSize: 15, height: 1.5),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {
+                      // TODO: Navigate to login screen
+                      // Navigator.pushNamedAndRemoveUntil(
+                      //   context,
+                      //   '/login',
+                      //   (route) => false,
+                      // );
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF203A43),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Go to Login',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          // Show regular error snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Failed to update status: $errorMessage'),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFFEF5B5B),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     } finally {
-      setState(() => _isUpdating = false);
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
     }
   }
 
   void _showStatusChangeDialog() {
     final currentStatus = _visit['status'] ?? '';
-    final statuses = ['Open', 'In Progress', 'Completed', 'Cancelled'];
+    final statuses = ['Open', 'In Progress', 'Completed'];
 
     showModalBottomSheet(
       context: context,
@@ -509,7 +653,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 const SizedBox(height: 20),
                 _buildCustomerInfoCard(),
                 const SizedBox(height: 20),
-                // Show all items/purposes
                 if (widget.visitObject != null &&
                     widget.visitObject!.purposes.isNotEmpty)
                   _buildItemsCard(),
@@ -756,69 +899,15 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 Icons.business,
               ),
             ],
-            if (_visit['customer_contact']?.isNotEmpty ?? false) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1, color: Colors.grey[200]),
-              ),
-              _buildDetailRow(
-                'Contact',
-                _visit['customer_contact'] ?? '',
-                Icons.phone_rounded,
-              ),
-            ],
-            if (_visit['customer_email']?.isNotEmpty ?? false) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1, color: Colors.grey[200]),
-              ),
-              _buildDetailRow(
-                'Email',
-                _visit['customer_email'] ?? '',
-                Icons.email_rounded,
-              ),
-            ],
             if (_visit['site']?.isNotEmpty ?? false) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Divider(height: 1, color: Colors.grey[200]),
               ),
-              _visit['site'] == null || _visit['site'] == 'N/A'
-                  ? const SizedBox()
-                  : _buildDetailRow(
-                      'Site',
-                      _visit['site'] ?? '',
-                      Icons.location_on_rounded,
-                    ),
-            ],
-            if (_visit['site_address'] != null &&
-                _visit['site_address'] != 'N/A') ...[
-              const SizedBox(height: 12),
-              Container(
-                margin: const EdgeInsets.only(left: 32),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FD),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.map_rounded, size: 18, color: Colors.grey[500]),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _visit['site_address'] ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              _buildDetailRow(
+                'Site',
+                _visit['site'] ?? '',
+                Icons.location_on_rounded,
               ),
             ],
           ],
@@ -1076,6 +1165,76 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               ],
             ),
           ],
+          if (purpose.servicePerson != null ||
+              purpose.softwareEngineer != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (purpose.servicePerson != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF26C281).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.engineering,
+                          size: 12,
+                          color: Color(0xFF26C281),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          purpose.servicePerson!,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF26C281),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (purpose.softwareEngineer != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5B8DEF).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.code,
+                          size: 12,
+                          color: Color(0xFF5B8DEF),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          purpose.softwareEngineer.toString(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF5B8DEF),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1149,17 +1308,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               _visit['scheduled_time'] ?? '',
               Icons.access_time_rounded,
             ),
-            if (_visit['estimated_duration']?.isNotEmpty ?? false) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1, color: Colors.grey[200]),
-              ),
-              _buildDetailRow(
-                'Duration',
-                _visit['estimated_duration'] ?? '',
-                Icons.timer_rounded,
-              ),
-            ],
             if (_visit['assigned_to']?.isNotEmpty ?? false) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1226,12 +1374,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
     );
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String value,
-    IconData icon, {
-    bool isCallable = false,
-  }) {
+  Widget _buildDetailRow(String label, String value, IconData icon) {
     return Row(
       children: [
         Container(
@@ -1269,44 +1412,18 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
             ],
           ),
         ),
-        if (isCallable)
-          Container(
-            margin: const EdgeInsets.only(left: 8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF5B8DEF), Color(0xFF203A43)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF5B8DEF).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.phone_rounded, size: 20),
-              color: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Calling $value'),
-                    backgroundColor: const Color(0xFF26C281),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
       ],
     );
   }
 
   Widget _buildBottomBar() {
+    final currentStatus = _visit['status']?.toLowerCase() ?? '';
+    final isCompleted = currentStatus == 'completed';
+
+    if (isCompleted) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
