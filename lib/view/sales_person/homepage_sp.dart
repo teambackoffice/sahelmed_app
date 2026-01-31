@@ -340,15 +340,21 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    fullName.isNotEmpty
-                        ? '${fullName[0].toUpperCase()}${fullName.substring(1)}'
+                    (fullName ?? '').trim().isNotEmpty
+                        ? fullName!
+                              .trim()
+                              .split(' ')
+                              .where((e) => e.isNotEmpty)
+                              .map((e) => e[0].toUpperCase() + e.substring(1))
+                              .join(' ')
                         : 'Welcome!',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
+
                   SizedBox(height: 12),
                   Text(
                     'Track your sales performance',

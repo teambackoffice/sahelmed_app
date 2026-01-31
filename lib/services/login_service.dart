@@ -58,6 +58,24 @@ class LoginService {
             await _writeIfNotNull('user_image', userInfo['user_image']);
           }
 
+          final employeeInfo = userInfo['employee_info'];
+          if (employeeInfo != null && employeeInfo is Map<String, dynamic>) {
+            await _storage.write(
+              key: 'employee_info',
+              value: jsonEncode(employeeInfo),
+            );
+
+            /// Store employee name separately (HR-EMP-00002)
+            await _writeIfNotNull('employee_name', employeeInfo['name']);
+
+            /// (Optional but useful)
+            await _writeIfNotNull(
+              'employee_display_name',
+              employeeInfo['employee_name'],
+            );
+            await _writeIfNotNull('employee_id', employeeInfo['employee_id']);
+          }
+
           /// Roles
           final roles = message['roles'];
           if (roles != null && roles is List) {
