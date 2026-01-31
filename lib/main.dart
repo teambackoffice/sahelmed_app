@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/providers/create_lead_provider.dart';
+import 'package:sahelmed_app/providers/create_mr_provider.dart';
 import 'package:sahelmed_app/providers/create_quotation_provider.dart';
 import 'package:sahelmed_app/providers/employee_check_in_provider.dart';
 import 'package:sahelmed_app/providers/get_customer_provider.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UpdateVisitStatusController()),
         ChangeNotifierProvider(create: (_) => EmployeeCheckinController()),
         ChangeNotifierProvider(create: (_) => GetWarehouseProvider()),
+        ChangeNotifierProvider(create: (_) => CreateMaterialRequestProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

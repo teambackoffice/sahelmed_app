@@ -544,7 +544,9 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CreateMaterialRequest(),
+                      builder: (context) => CreateMaterialRequest(
+                        visitObject: widget.visitObject,
+                      ),
                     ),
                   );
                   break;

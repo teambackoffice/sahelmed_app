@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/modal/get_mv_modal.dart';
+import 'package:sahelmed_app/providers/create_mr_provider.dart';
 import 'package:sahelmed_app/providers/get_warehouse_provider.dart';
 
 class CreateMaterialRequest extends StatefulWidget {
-  const CreateMaterialRequest({super.key});
+  final Visit? visitObject;
+
+  const CreateMaterialRequest({super.key, this.visitObject});
 
   @override
   State<CreateMaterialRequest> createState() => _CreateMaterialRequestState();
@@ -46,9 +50,33 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
   @override
   void initState() {
     super.initState();
+
+    // Pre-populate items from visit if available
+    if (widget.visitObject != null && widget.visitObject!.purposes.isNotEmpty) {
+      _loadItemsFromVisit();
+    }
+
     // Fetch warehouses when the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GetWarehouseProvider>().fetchWarehouses();
+    });
+  }
+
+  void _loadItemsFromVisit() {
+    setState(() {
+      items = widget.visitObject!.purposes.map((purpose) {
+        return {
+          'item_code': purpose.itemCode.isNotEmpty
+              ? purpose.itemCode
+              : purpose.itemName,
+          'item_name': purpose.itemName,
+          'qty': 1.0, // Default quantity
+          'uom': 'Nos', // Default UOM
+          'warehouse': null,
+          'serial_no': purpose.serialNo,
+          'description': purpose.description,
+        };
+      }).toList();
     });
   }
 
@@ -58,9 +86,13 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
     if (_addItemFormKey.currentState!.validate()) {
       setState(() {
         items.add({
-          'itemCode': _itemCodeController.text,
-          'qty': _quantityController.text,
+          'item_code': _itemCodeController.text,
+          'item_name': _itemCodeController.text,
+          'qty': double.parse(_quantityController.text),
           'uom': _selectedUom,
+          'warehouse': _selectedWarehouse,
+          'serial_no': null,
+          'description': '',
         });
         _itemCodeController.clear();
         _quantityController.clear();
@@ -74,6 +106,180 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
     setState(() {
       items.removeAt(index);
     });
+  }
+
+  void _editItem(int index) {
+    final item = items[index];
+
+    // Pre-fill controllers
+    _itemCodeController.text = item['item_code'] ?? item['item_name'];
+    _quantityController.text = item['qty'].toString();
+    _selectedUom = item['uom'];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.edit_rounded,
+                color: Colors.indigo.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Edit Item',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _addItemFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _itemCodeController,
+                  decoration: InputDecoration(
+                    labelText: 'Item Name / Code',
+                    labelStyle: const TextStyle(fontSize: 14),
+                    hintText: 'Enter item name or code',
+                    hintStyle: const TextStyle(fontSize: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  validator: (v) => v!.isEmpty ? 'Item name is required' : null,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _quantityController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Quantity',
+                          labelStyle: const TextStyle(fontSize: 14),
+                          hintText: '0.00',
+                          hintStyle: const TextStyle(fontSize: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v!.isEmpty) return 'Required';
+                          if (double.tryParse(v) == null)
+                            return 'Invalid number';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _selectedUom,
+                        decoration: InputDecoration(
+                          labelText: 'Unit',
+                          labelStyle: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          hintText: 'Select unit',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                        items: uomList
+                            .map(
+                              (u) => DropdownMenuItem(value: u, child: Text(u)),
+                            )
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedUom = v),
+                        validator: (v) => v == null ? 'Unit is required' : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _itemCodeController.clear();
+              _quantityController.clear();
+              setState(() => _selectedUom = null);
+              Navigator.pop(context);
+            },
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_addItemFormKey.currentState!.validate()) {
+                setState(() {
+                  items[index] = {
+                    'item_code': _itemCodeController.text,
+                    'item_name': _itemCodeController.text,
+                    'qty': double.parse(_quantityController.text),
+                    'uom': _selectedUom,
+                    'warehouse': _selectedWarehouse,
+                    'serial_no': item['serial_no'],
+                    'description': item['description'],
+                  };
+                  _itemCodeController.clear();
+                  _quantityController.clear();
+                  _selectedUom = null;
+                });
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('UPDATE ITEM'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _selectDate(BuildContext context, bool isTransaction) async {
@@ -104,25 +310,120 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
     }
   }
 
-  void _submitRequest() {
+  Future<void> _submitRequest() async {
     if (_formKey.currentState!.validate() && items.isNotEmpty) {
-      // TODO: Implement actual API submission
+      // Show loading dialog
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          icon: const Icon(Icons.check_circle, color: Colors.green, size: 48),
-          title: const Text('Success'),
-          content: const Text('Material request created successfully!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context)
-                ..pop()
-                ..pop(),
-              child: const Text('OK'),
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Creating Material Request...'),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       );
+
+      try {
+        await context
+            .read<CreateMaterialRequestProvider>()
+            .createMaterialRequest(
+              scheduleDate: _requiredByDate.toString(),
+              materialRequestType: _selectedPurpose!,
+              company: 'Al Sahel', // TODO: Get from user session/settings
+              setWarehouse: _selectedWarehouse!,
+              items: items,
+            );
+
+        // Close loading dialog
+        if (mounted) Navigator.pop(context);
+
+        final provider = context.read<CreateMaterialRequestProvider>();
+
+        if (provider.errorMessage == null) {
+          // Success
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                icon: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 48,
+                ),
+                title: const Text('Success'),
+                content: Text('Material request created successfully!\n\n'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context)
+                      ..pop()
+                      ..pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          // Error
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                icon: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 48,
+                ),
+                title: const Text('Error'),
+                content: Text(
+                  provider.errorMessage ?? 'Unknown error occurred',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        // Close loading dialog
+        if (mounted) Navigator.pop(context);
+
+        // Show error
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 48,
+              ),
+              title: const Text('Error'),
+              content: Text('Failed to create material request: $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
     } else if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -226,7 +527,12 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                             vertical: 16,
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                        validator: (v) {
+                          if (v!.isEmpty) return 'Required';
+                          if (double.tryParse(v) == null)
+                            return 'Invalid number';
+                          return null;
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -305,8 +611,8 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Consumer<GetWarehouseProvider>(
-        builder: (context, warehouseProvider, child) {
+      body: Consumer2<GetWarehouseProvider, CreateMaterialRequestProvider>(
+        builder: (context, warehouseProvider, createMrProvider, child) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Form(
@@ -314,6 +620,58 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Show visit info banner if items were pre-loaded
+                  if (widget.visitObject != null &&
+                      widget.visitObject!.purposes.isNotEmpty) ...[
+                    // Container(
+                    //   padding: const EdgeInsets.all(16),
+                    //   decoration: BoxDecoration(
+                    //     gradient: LinearGradient(
+                    //       colors: [Colors.blue.shade50, Colors.indigo.shade50],
+                    //     ),
+                    //     borderRadius: BorderRadius.circular(12),
+                    //     border: Border.all(
+                    //       color: Colors.indigo.shade200,
+                    //       width: 1,
+                    //     ),
+                    //   ),
+                    //   child: Row(
+                    //     children: [
+                    //       Icon(
+                    //         Icons.info_outline,
+                    //         color: Colors.indigo.shade700,
+                    //         size: 24,
+                    //       ),
+                    //       const SizedBox(width: 12),
+                    //       Expanded(
+                    //         child: Column(
+                    //           crossAxisAlignment: CrossAxisAlignment.start,
+                    //           children: [
+                    //             Text(
+                    //               'Visit: ${widget.visitObject!.id}',
+                    //               style: TextStyle(
+                    //                 fontWeight: FontWeight.bold,
+                    //                 color: Colors.indigo.shade900,
+                    //                 fontSize: 14,
+                    //               ),
+                    //             ),
+                    //             const SizedBox(height: 4),
+                    //             Text(
+                    //               'Items loaded from maintenance visit',
+                    //               style: TextStyle(
+                    //                 fontSize: 12,
+                    //                 color: Colors.indigo.shade700,
+                    //               ),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    const SizedBox(height: 16),
+                  ],
+
                   Text(
                     'Details',
                     style: TextStyle(
@@ -370,7 +728,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 🔥 INTEGRATED WAREHOUSE DROPDOWN
+                        // Warehouse Dropdown
                         DropdownButtonFormField<String>(
                           value: _selectedWarehouse,
                           decoration: InputDecoration(
@@ -423,7 +781,6 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                               v == null ? 'Please select a warehouse' : null,
                         ),
 
-                        // Show error if warehouse fetch failed
                         if (warehouseProvider.errorMessage != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
@@ -592,8 +949,12 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                       separatorBuilder: (c, i) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = items[index];
+                        final hasSerial =
+                            item['serial_no'] != null &&
+                            item['serial_no'].toString().isNotEmpty;
+
                         return Dismissible(
-                          key: Key('${item['itemCode']}_$index'),
+                          key: Key('${item['item_code']}_$index'),
                           direction: DismissDirection.endToStart,
                           onDismissed: (_) => _removeItem(index),
                           background: Container(
@@ -623,7 +984,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
-                                vertical: 8,
+                                vertical: 12,
                               ),
                               leading: Container(
                                 width: 48,
@@ -643,26 +1004,78 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                                   ),
                                 ),
                               ),
-                              title: Text(
-                                item['itemCode'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['item_name'] ?? item['item_code'],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (hasSerial) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.qr_code,
+                                            size: 12,
+                                            color: Colors.blue.shade700,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'S/N: ${item['serial_no']}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.blue.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  '${item['qty']} ${item['uom']}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                              subtitle: Text(
-                                '${item['qty']} ${item['uom']}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(
-                                  Icons.remove_circle_outline,
-                                  color: Colors.redAccent,
-                                ),
-                                onPressed: () => _removeItem(index),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      color: Colors.blue,
+                                    ),
+                                    onPressed: () => _editItem(index),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () => _removeItem(index),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -676,7 +1089,9 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _submitRequest,
+                      onPressed: createMrProvider.isLoading
+                          ? null
+                          : _submitRequest,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkNavy,
                         foregroundColor: Colors.white,
@@ -684,22 +1099,32 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
+                        disabledBackgroundColor: Colors.grey.shade400,
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send_rounded, size: 24),
-                          SizedBox(width: 12),
-                          Text(
-                            'SUBMIT REQUEST',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
+                      child: createMrProvider.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.send_rounded, size: 24),
+                                SizedBox(width: 12),
+                                Text(
+                                  'SUBMIT REQUEST',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
