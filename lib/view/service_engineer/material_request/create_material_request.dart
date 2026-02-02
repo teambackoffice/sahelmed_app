@@ -339,7 +339,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
             .createMaterialRequest(
               scheduleDate: _requiredByDate.toString(),
               materialRequestType: _selectedPurpose!,
-              company: 'Al Sahel', // TODO: Get from user session/settings
+              company: 'Al Sahel',
               setWarehouse: _selectedWarehouse!,
               items: items,
             );

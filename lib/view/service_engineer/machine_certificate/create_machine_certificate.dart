@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
+import 'dart:convert';
+import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/modal/get_mv_modal.dart';
+import 'package:sahelmed_app/providers/create_service_cert_provider.dart';
 
 class CreateMachineCertificate extends StatefulWidget {
-  const CreateMachineCertificate({super.key});
+  final Visit? visitObject;
+  const CreateMachineCertificate({super.key, this.visitObject});
 
   @override
   State<CreateMachineCertificate> createState() =>
@@ -15,20 +19,27 @@ class CreateMachineCertificate extends StatefulWidget {
 class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
   final _formKey = GlobalKey<FormState>();
   final _customerController = TextEditingController();
-  final _machineNameController = TextEditingController();
   final _visitReferenceController = TextEditingController();
 
-  String _certificateType = 'AMC';
-  DateTime? _validityDate;
   File? _signatureImage;
   final ImagePicker _picker = ImagePicker();
 
-  bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _populateFieldsFromVisit();
+  }
+
+  void _populateFieldsFromVisit() {
+    if (widget.visitObject != null) {
+      _customerController.text = widget.visitObject!.customer;
+      _visitReferenceController.text = widget.visitObject!.id;
+    }
+  }
 
   @override
   void dispose() {
     _customerController.dispose();
-    _machineNameController.dispose();
     _visitReferenceController.dispose();
     super.dispose();
   }
@@ -155,32 +166,6 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
     );
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate:
-          _validityDate ?? DateTime.now().add(const Duration(days: 365)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _validityDate) {
-      setState(() {
-        _validityDate = picked;
-      });
-    }
-  }
-
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -192,13 +177,17 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
     );
   }
 
+  Future<String> _convertImageToBase64(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      return base64Encode(bytes);
+    } catch (e) {
+      throw Exception('Error converting image to base64: $e');
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_validityDate == null) {
-      _showSnackBar('Please select validity date', isError: true);
       return;
     }
 
@@ -207,387 +196,402 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    if (widget.visitObject == null) {
+      _showSnackBar('Visit object is required', isError: true);
+      return;
+    }
+
+    final controller = Provider.of<CreateMachineServiceCertificateController>(
+      context,
+      listen: false,
+    );
 
     try {
-      // TODO: Implement your API call here
-      await Future.delayed(const Duration(seconds: 2)); // Simulating API call
+      // Call API with File object directly
+      await controller.generateCertificate(
+        visitId: widget.visitObject!.id,
+        customerImageFile: _signatureImage!,
+      );
 
-      if (mounted) {
+      if (!mounted) return;
+
+      if (controller.errorMessage != null) {
+        _showSnackBar(controller.errorMessage!, isError: true);
+      } else {
         _showSnackBar('Machine Certificate created successfully!');
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
-      _showSnackBar('Error creating certificate: $e', isError: true);
-    } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        _showSnackBar('Error creating certificate: $e', isError: true);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_sharp, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: AppColors.darkNavy,
-        title: const Text(
-          'Create Machine Certificate',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        elevation: 0,
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: AppColors.splashGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.receipt_long, color: Colors.white, size: 32),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'New Certificate',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Fill in the details below',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+    return Consumer<CreateMachineServiceCertificateController>(
+      builder: (context, controller, child) {
+        return Scaffold(
+          backgroundColor: Colors.grey[50],
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_sharp,
+                color: Colors.white,
               ),
-
-              const SizedBox(height: 24),
-
-              // Form Fields Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
+              onPressed: controller.isLoading
+                  ? null
+                  : () => Navigator.pop(context),
+            ),
+            backgroundColor: AppColors.darkNavy,
+            title: const Text(
+              'Create Machine Certificate',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            elevation: 0,
+          ),
+          body: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.splashGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionTitle('Basic Information'),
-                      const SizedBox(height: 16),
-
-                      _buildTextField(
-                        controller: _customerController,
-                        label: 'Customer Name',
-                        hint: 'Enter customer name',
-                        icon: Icons.person_outline,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter customer name';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _buildTextField(
-                        controller: _machineNameController,
-                        label: 'Machine Name',
-                        hint: 'Enter machine name',
-                        icon: Icons.precision_manufacturing_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter machine name';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('Certificate Details'),
-                      const SizedBox(height: 16),
-
-                      // Certificate Type Selection
-                      Row(
-                        children: [
-                          Expanded(child: _buildCertificateTypeCard('AMC')),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildCertificateTypeCard('PPM')),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _buildTextField(
-                        controller: _visitReferenceController,
-                        label: 'Visit Reference',
-                        hint: 'Enter visit reference number',
-                        icon: Icons.numbers,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter visit reference';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Validity Date Picker
-                      InkWell(
-                        onTap: _selectDate,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.receipt_long,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.indigo,
-                                  size: 20,
+                              const Text(
+                                'New Certificate',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Validity Date',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _validityDate == null
-                                          ? 'Select validity date'
-                                          : '${_validityDate!.day}/${_validityDate!.month}/${_validityDate!.year}',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: _validityDate == null
-                                            ? FontWeight.normal
-                                            : FontWeight.w600,
-                                        color: _validityDate == null
-                                            ? Colors.grey[400]
-                                            : Colors.black87,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.visitObject != null
+                                    ? 'Visit: ${widget.visitObject!.id}'
+                                    : 'Fill in the details below',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
                                 ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey[400],
                               ),
                             ],
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('Signature'),
-                      const SizedBox(height: 16),
-
-                      // Signature Section
-                      InkWell(
-                        onTap: _showImageSourceDialog,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Center(
-                          child: Container(
-                            height: 150,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _signatureImage == null
-                                    ? Colors.grey[300]!
-                                    : Theme.of(context).primaryColor,
-                                width: _signatureImage == null ? 1 : 2,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey[50],
-                            ),
-                            child: _signatureImage == null
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo,
-                                        size: 48,
-                                        color: Colors.grey[400],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        'Add Signature',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[600],
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Tap to capture or select photo',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image.file(
-                                          _signatureImage!,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _signatureImage = null;
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkNavy,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    shadowColor: AppColors.darkNavy.withOpacity(0.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      ],
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
+
+                  const SizedBox(height: 24),
+
+                  // Form Fields Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle('Basic Information'),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _customerController,
+                            label: 'Customer Name',
+                            hint: 'Enter customer name',
+                            icon: Icons.person_outline,
+                            readOnly: widget.visitObject != null,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter customer name';
+                              }
+                              return null;
+                            },
                           ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline, size: 24),
-                            SizedBox(width: 8),
-                            Text(
-                              'Create Certificate',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
+
+                          const SizedBox(height: 16),
+
+                          _buildTextField(
+                            controller: _visitReferenceController,
+                            label: 'Visit Reference',
+                            hint: 'Enter visit reference number',
+                            icon: Icons.numbers,
+                            readOnly: widget.visitObject != null,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter visit reference';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          // Show machines/items list if available
+                          if (widget.visitObject != null &&
+                              widget.visitObject!.purposes.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _buildSectionTitle('Machines & Equipment'),
+                            const SizedBox(height: 16),
+                            _buildMachinesList(),
+                          ],
+
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Signature'),
+                          const SizedBox(height: 16),
+
+                          // Signature Section
+                          InkWell(
+                            onTap: controller.isLoading
+                                ? null
+                                : _showImageSourceDialog,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Center(
+                              child: Container(
+                                height: 150,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: _signatureImage == null
+                                        ? Colors.grey[300]!
+                                        : Theme.of(context).primaryColor,
+                                    width: _signatureImage == null ? 1 : 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.grey[50],
+                                ),
+                                child: _signatureImage == null
+                                    ? Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.add_a_photo,
+                                            size: 48,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Add Signature',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey[600],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Tap to capture or select photo',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[400],
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Stack(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Image.file(
+                                              _signatureImage!,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                onPressed: controller.isLoading
+                                                    ? null
+                                                    : () {
+                                                        setState(() {
+                                                          _signatureImage =
+                                                              null;
+                                                        });
+                                                      },
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ),
                             ),
-                          ],
-                        ),
-                ),
-              ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-              const SizedBox(height: 20),
-            ],
+                  const SizedBox(height: 32),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: controller.isLoading ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkNavy,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shadowColor: AppColors.darkNavy.withOpacity(0.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: controller.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_outline, size: 24),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Create Certificate',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMachinesList() {
+    return Column(
+      children: widget.visitObject!.purposes.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        final isLast = index == widget.visitObject!.purposes.length - 1;
+
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!, width: 1),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.splashGradient,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.itemName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3E50),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.check_circle, color: AppColors.darkNavy, size: 24),
+                ],
+              ),
+            ),
+            if (!isLast) const SizedBox(height: 12),
+          ],
+        );
+      }).toList(),
     );
   }
 
@@ -608,10 +612,12 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
     required String hint,
     required IconData icon,
     String? Function(String?)? validator,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
       validator: validator,
+      readOnly: readOnly,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -636,51 +642,7 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
           borderSide: const BorderSide(color: Colors.red),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
-      ),
-    );
-  }
-
-  Widget _buildCertificateTypeCard(String type) {
-    final isSelected = _certificateType == type;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _certificateType = type;
-        });
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
-              : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? AppColors.darkNavy : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              type == 'AMC' ? Icons.verified_user : Icons.build_circle,
-              color: isSelected ? Colors.indigo : Colors.grey[400],
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              type,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.indigo : Colors.grey[700],
-              ),
-            ),
-          ],
-        ),
+        fillColor: readOnly ? Colors.grey[100] : Colors.grey[50],
       ),
     );
   }
