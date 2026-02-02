@@ -89,8 +89,8 @@ class Certificate {
   Status status;
   DateTime createdOn;
   DateTime lastModified;
-  EdBy createdBy;
-  EdBy modifiedBy;
+  EdBy? createdBy;
+  EdBy? modifiedBy;
 
   Certificate({
     required this.id,
@@ -131,19 +131,21 @@ class Certificate {
     visitDate: json["visit_date"] == null
         ? null
         : DateTime.parse(json["visit_date"]),
-    visitTime: json["visit_time"],
-    serviceEngineer: json["service_engineer"],
-    serviceEngineerName: json["service_engineer_name"],
+    visitTime: json["visit_time"] ?? "",
+    serviceEngineer: json["service_engineer"] ?? "",
+    serviceEngineerName: json["service_engineer_name"] ?? "",
     maintenanceVisit: json["maintenance_visit"],
-    certificateNumber: json["certificate_number"],
-    contractType: contractTypeValues.map[json["contract_type"]]!,
+    certificateNumber: json["certificate_number"] ?? "",
+    contractType:
+        contractTypeValues.map[json["contract_type"]] ?? ContractType.EMPTY,
     certificateIssueDate: DateTime.parse(json["certificate_issue_date"]),
     serviceDescription: json["service_description"],
     overallServiceStatus:
-        overallServiceStatusValues.map[json["overall_service_status"]]!,
-    totalMachinesServiced: json["total_machines_serviced"],
-    machinesPassed: json["machines_passed"],
-    machinesFailed: json["machines_failed"],
+        overallServiceStatusValues.map[json["overall_service_status"]] ??
+        OverallServiceStatus.PASS,
+    totalMachinesServiced: json["total_machines_serviced"] ?? 0,
+    machinesPassed: json["machines_passed"] ?? 0,
+    machinesFailed: json["machines_failed"] ?? 0,
     technicianComments: json["technician_comments"],
     serviceDate: json["service_date"] == null
         ? null
@@ -151,12 +153,16 @@ class Certificate {
     nextServiceDue: json["next_service_due"] == null
         ? null
         : DateTime.parse(json["next_service_due"]),
-    certificateGenerated: json["certificate_generated"],
-    status: statusValues.map[json["status"]]!,
+    certificateGenerated: json["certificate_generated"] ?? 0,
+    status: statusValues.map[json["status"]] ?? Status.DRAFT,
     createdOn: DateTime.parse(json["created_on"]),
     lastModified: DateTime.parse(json["last_modified"]),
-    createdBy: edByValues.map[json["created_by"]]!,
-    modifiedBy: edByValues.map[json["modified_by"]]!,
+    createdBy: json["created_by"] != null
+        ? edByValues.map[json["created_by"]]
+        : null,
+    modifiedBy: json["modified_by"] != null
+        ? edByValues.map[json["modified_by"]]
+        : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -190,8 +196,8 @@ class Certificate {
     "status": statusValues.reverse[status],
     "created_on": createdOn.toIso8601String(),
     "last_modified": lastModified.toIso8601String(),
-    "created_by": edByValues.reverse[createdBy],
-    "modified_by": edByValues.reverse[modifiedBy],
+    "created_by": createdBy != null ? edByValues.reverse[createdBy] : null,
+    "modified_by": modifiedBy != null ? edByValues.reverse[modifiedBy] : null,
   };
 }
 

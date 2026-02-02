@@ -318,7 +318,7 @@ class CertificateCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -371,6 +371,9 @@ class CertificateCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             certificate.title,
+                            maxLines: 2, // 👈 limit to two lines
+                            overflow:
+                                TextOverflow.ellipsis, // optional: adds "..."
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -415,7 +418,7 @@ class CertificateCard extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 // Divider
-                Container(height: 1, color: Colors.grey.shade100),
+                Container(height: 1, color: Colors.grey.shade300),
 
                 const SizedBox(height: 16),
 

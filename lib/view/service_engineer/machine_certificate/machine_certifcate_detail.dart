@@ -387,7 +387,8 @@ class _MachineServiceCertificateDetailState
                       _buildInfoRow(
                         icon: Icons.person_outline,
                         label: 'Created By',
-                        value: _getCreatedByText(cert.createdBy),
+                        value: cert
+                            .serviceEngineer, // fallback to service engineer email
                         color: Colors.indigo,
                       ),
                       const SizedBox(height: 16),
@@ -624,18 +625,19 @@ class _MachineServiceCertificateDetailState
     }
   }
 
-  String _getCreatedByText(EdBy createdBy) {
-    switch (createdBy) {
-      case EdBy.ADMINISTRATOR:
-        return 'Administrator';
-      case EdBy.SALESENGINEER_GMAIL_COM:
-        return 'Sales Engineer';
-      case EdBy.SERVICEMANAGER_GMAIL_COM:
-        return 'Service Manager';
-      default:
-        return 'Unknown';
-    }
-  }
+  // String _getCreatedByText(EdBy? createdBy) {
+  //   if (createdBy == null) return 'Unknown';
+  //   switch (createdBy) {
+  //     case EdBy.ADMINISTRATOR:
+  //       return 'Administrator';
+  //     case EdBy.SALESENGINEER_GMAIL_COM:
+  //       return 'Sales Engineer';
+  //     case EdBy.SERVICEMANAGER_GMAIL_COM:
+  //       return 'Service Manager';
+  //     default:
+  //       return 'Unknown';
+  //   }
+  // }
 
   int _getDaysUntilExpiry(DateTime? validityDate) {
     if (validityDate == null) return 0;

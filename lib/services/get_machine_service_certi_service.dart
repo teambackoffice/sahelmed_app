@@ -11,30 +11,39 @@ class GetMachineServiceService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<GetMachineServiceModalClass> fetchMachineServiceCertificates() async {
-    // 🔐 Read session_id from secure storage
-    final sessionId = await _storage.read(key: 'session_id');
+    try {
+      // 🔐 Read session_id from secure storage
+      final sessionId = await _storage.read(key: 'session_id');
 
-    if (sessionId == null) {
-      throw Exception('Session expired. Please login again.');
-    }
+      if (sessionId == null) {
+        throw Exception('Session expired. Please login again.');
+      }
 
-    final headers = {
-      'Content-Type': 'application/json',
-      'Cookie': 'sid=$sessionId',
-    };
+      final headers = {
+        'Content-Type': 'application/json',
+        'Cookie': 'sid=$sessionId',
+      };
 
-    final request = http.Request('GET', Uri.parse(_url));
-    request.headers.addAll(headers);
+      final request = http.Request('GET', Uri.parse(_url));
+      request.headers.addAll(headers);
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
 
-    if (response.statusCode == 200) {
-      return getMachineServiceModalClassFromJson(responseBody);
-    } else {
-      throw Exception(
-        'Failed to load machine service certificates: ${response.reasonPhrase}',
-      );
+      if (response.statusCode == 200) {
+        return getMachineServiceModalClassFromJson(responseBody);
+      } else {
+        // 🧠 Try to extract server message if exists
+        final decoded = jsonDecode(responseBody);
+
+        throw Exception(
+          decoded['message'] ?? 'Failed to load machine service certificates',
+        );
+      }
+    } catch (e, stackTrace) {
+      // 🚨 Catch ANY error (network, parsing, permission, etc.)
+
+      rethrow;
     }
   }
 }
