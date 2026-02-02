@@ -45,15 +45,8 @@ class CreateMaterialRequestService {
       "items": items,
     });
 
-    // 🔍 Debug logs
-    print('📤 REQUEST HEADERS: ${request.headers}');
-    print('📤 REQUEST BODY: ${request.body}');
-
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();
-
-    print('✅ STATUS CODE: ${response.statusCode}');
-    print('✅ RESPONSE BODY: $responseBody');
 
     try {
       final decoded = json.decode(responseBody);
