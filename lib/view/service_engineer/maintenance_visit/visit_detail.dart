@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sahelmed_app/modal/get_mv_modal.dart';
 import 'package:sahelmed_app/providers/post_mv_status_provider.dart';
 import 'package:sahelmed_app/view/service_engineer/machine_certificate/create_machine_certificate.dart';
@@ -22,11 +23,109 @@ class MaintenanceVisitDetail extends StatefulWidget {
 class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
   late Map<String, dynamic> _visit;
   bool _isUpdating = false;
+  bool _isLoadingDocuments = true;
+  bool _hasMachineCertificate = false;
+  bool _hasMaterialRequest = false;
+
+  // Initialize Flutter Secure Storage
+  final _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
 
   @override
   void initState() {
     super.initState();
     _visit = Map.from(widget.visit);
+    _loadDocumentStatus();
+  }
+
+  // Load document creation status from Secure Storage
+  Future<void> _loadDocumentStatus() async {
+    if (widget.visitObject == null) {
+      setState(() => _isLoadingDocuments = false);
+      return;
+    }
+
+    try {
+      final visitId = widget.visitObject!.id;
+
+      // Read values from secure storage
+      final certificateStatus = await _secureStorage.read(
+        key: 'certificate_$visitId',
+      );
+      final materialStatus = await _secureStorage.read(
+        key: 'material_$visitId',
+      );
+
+      setState(() {
+        _hasMachineCertificate = certificateStatus == 'true';
+        _hasMaterialRequest = materialStatus == 'true';
+        _isLoadingDocuments = false;
+      });
+    } catch (e) {
+      print('Error loading document status: $e');
+      setState(() => _isLoadingDocuments = false);
+    }
+  }
+
+  // Save document creation status to Secure Storage
+  Future<void> _saveDocumentStatus() async {
+    if (widget.visitObject == null) return;
+
+    try {
+      final visitId = widget.visitObject!.id;
+
+      // Write values to secure storage
+      await _secureStorage.write(
+        key: 'certificate_$visitId',
+        value: _hasMachineCertificate.toString(),
+      );
+      await _secureStorage.write(
+        key: 'material_$visitId',
+        value: _hasMaterialRequest.toString(),
+      );
+    } catch (e) {
+      print('Error saving document status: $e');
+    }
+  }
+
+  // Optional: Clear document status for this visit
+  Future<void> _clearDocumentStatus() async {
+    if (widget.visitObject == null) return;
+
+    try {
+      final visitId = widget.visitObject!.id;
+
+      await _secureStorage.delete(key: 'certificate_$visitId');
+      await _secureStorage.delete(key: 'material_$visitId');
+
+      setState(() {
+        _hasMachineCertificate = false;
+        _hasMaterialRequest = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.refresh, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Document status cleared')),
+              ],
+            ),
+            backgroundColor: const Color(0xFF5B8DEF),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error clearing document status: $e');
+    }
   }
 
   Color _getStatusColor(String status) {
@@ -522,128 +621,225 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
           ),
         ),
         actions: [
-          PopupMenuButton<String>(
-            color: Colors.white,
-            icon: const Icon(Icons.more_vert, color: Color(0xFF2C3E50)),
-            offset: const Offset(0, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          // Only show popup menu if documents are loaded and at least one is not created
+          if (!_isLoadingDocuments &&
+              (!_hasMachineCertificate || !_hasMaterialRequest))
+            PopupMenuButton<String>(
+              color: Colors.white,
+              icon: const Icon(Icons.more_vert, color: Color(0xFF2C3E50)),
+              offset: const Offset(0, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 8,
+              onSelected: (value) async {
+                dynamic result;
+
+                switch (value) {
+                  case 'certificate':
+                    result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateMachineCertificate(
+                          visitObject: widget.visitObject,
+                        ),
+                      ),
+                    );
+
+                    // Only mark as created if result is explicitly true (successful creation)
+                    if (result == true) {
+                      setState(() {
+                        _hasMachineCertificate = true;
+                      });
+
+                      // Save to Secure Storage
+                      await _saveDocumentStatus();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Machine Certificate created successfully',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF26C281),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                    break;
+
+                  case 'material':
+                    result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateMaterialRequest(
+                          visitObject: widget.visitObject,
+                        ),
+                      ),
+                    );
+
+                    // Only mark as created if result is explicitly true (successful creation)
+                    if (result == true) {
+                      setState(() {
+                        _hasMaterialRequest = true;
+                      });
+
+                      // Save to Secure Storage
+                      await _saveDocumentStatus();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Material Request created successfully',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF26C281),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                List<PopupMenuEntry<String>> items = [];
+
+                // Only add Machine Certificate option if not created
+                if (!_hasMachineCertificate) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'certificate',
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE74C3C).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.description_outlined,
+                              color: Color(0xFFE74C3C),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Machine Certificate',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Create certificate',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF95A5A6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                // Add divider only if both items will be present
+                if (!_hasMachineCertificate && !_hasMaterialRequest) {
+                  items.add(const PopupMenuDivider(height: 1));
+                }
+
+                // Only add Material Request option if not created
+                if (!_hasMaterialRequest) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'material',
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF27AE60).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.inventory_2_outlined,
+                              color: Color(0xFF27AE60),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Material Request',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Material Requests',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF7F8C8D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return items;
+              },
             ),
-            elevation: 8,
-            onSelected: (value) {
-              switch (value) {
-                case 'certificate':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CreateMachineCertificate(
-                        visitObject: widget.visitObject,
-                      ),
-                    ),
-                  );
-                  break;
-                case 'material':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CreateMaterialRequest(
-                        visitObject: widget.visitObject,
-                      ),
-                    ),
-                  );
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem(
-                value: 'certificate',
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE74C3C).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.description_outlined,
-                        color: Color(0xFFE74C3C),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Machine Certificate',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2C3E50),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Create certificate',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF95A5A6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(height: 1),
-              PopupMenuItem(
-                value: 'material',
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF27AE60).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.inventory_2_outlined,
-                        color: Color(0xFF27AE60),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Material Request',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2C3E50),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Material Requests',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF7F8C8D),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
       ),
       body: Stack(
@@ -655,6 +851,15 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               children: [
                 _buildHeaderCard(),
                 const SizedBox(height: 20),
+
+                // Show document status card if not loading and at least one is created
+                if (!_isLoadingDocuments &&
+                    (_hasMachineCertificate || _hasMaterialRequest))
+                  _buildDocumentStatusCard(),
+                if (!_isLoadingDocuments &&
+                    (_hasMachineCertificate || _hasMaterialRequest))
+                  const SizedBox(height: 20),
+
                 _buildCustomerInfoCard(),
                 const SizedBox(height: 20),
                 if (widget.visitObject != null &&
@@ -668,7 +873,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               ],
             ),
           ),
-          if (_isUpdating)
+          if (_isUpdating || _isLoadingDocuments)
             Container(
               color: Colors.black45,
               child: Center(
@@ -678,18 +883,18 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Column(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(
+                      const CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
                           Color(0xFF203A43),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Text(
-                        'Updating status...',
-                        style: TextStyle(
+                        _isUpdating ? 'Updating status...' : 'Loading...',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF2C3E50),
@@ -703,6 +908,135 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
         ],
       ),
       bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  // Document status card widget
+  Widget _buildDocumentStatusCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26C281).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF26C281).withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26C281),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _hasMachineCertificate && _hasMaterialRequest
+                      ? 'All Documents Created'
+                      : 'Documents Created',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+              ),
+
+              // Optional: Add refresh button to clear status
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (_hasMachineCertificate)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE74C3C),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE74C3C).withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.description,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Machine Service Certificate',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_hasMaterialRequest)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF27AE60),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF27AE60).withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.inventory_2,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Material Request',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -903,17 +1237,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                 Icons.business,
               ),
             ],
-            if (_visit['site']?.isNotEmpty ?? false) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Divider(height: 1, color: Colors.grey[200]),
-              ),
-              _buildDetailRow(
-                'Site',
-                _visit['site'] ?? '',
-                Icons.location_on_rounded,
-              ),
-            ],
           ],
         ),
       ),
@@ -1076,31 +1399,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
               ),
             ],
           ),
-          if (purpose.serialNo != null && purpose.serialNo!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.qr_code, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(
-                    'S/N: ${purpose.serialNo}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           if (purpose.description.isNotEmpty) ...[
             const SizedBox(height: 12),
             Row(
@@ -1132,110 +1430,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
                     ],
                   ),
                 ),
-              ],
-            ),
-          ],
-          if (purpose.workDone.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.task_alt, size: 16, color: Colors.grey[500]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Work Done',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[500],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        purpose.workDone,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (purpose.servicePerson != null ||
-              purpose.softwareEngineer != null) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (purpose.servicePerson != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF26C281).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.engineering,
-                          size: 12,
-                          color: Color(0xFF26C281),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          purpose.servicePerson!,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF26C281),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (purpose.softwareEngineer != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5B8DEF).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.code,
-                          size: 12,
-                          color: Color(0xFF5B8DEF),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          purpose.softwareEngineer.toString(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF5B8DEF),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
           ],

@@ -350,9 +350,9 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
         final provider = context.read<CreateMaterialRequestProvider>();
 
         if (provider.errorMessage == null) {
-          // Success
+          // ✅ SUCCESS - Show success dialog
           if (mounted) {
-            showDialog(
+            await showDialog(
               context: context,
               builder: (context) => AlertDialog(
                 icon: const Icon(
@@ -361,20 +361,24 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                   size: 48,
                 ),
                 title: const Text('Success'),
-                content: Text('Material request created successfully!\n\n'),
+                content: const Text('Material request created successfully!'),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(context)
-                      ..pop()
-                      ..pop(),
+                    onPressed: () => Navigator.pop(context),
                     child: const Text('OK'),
                   ),
                 ],
               ),
             );
+
+            // ✅ CRITICAL: Return true to indicate successful creation
+            Navigator.pop(
+              context,
+              true,
+            ); // <-- Changed from ..pop()..pop() to pop(context, true)
           }
         } else {
-          // Error
+          // ❌ ERROR - Show error dialog
           if (mounted) {
             showDialog(
               context: context,
@@ -396,13 +400,16 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                 ],
               ),
             );
+
+            // ❌ CRITICAL: Do NOT pop the create screen - stay to allow retry
+            // Removed Navigator.pop() here
           }
         }
       } catch (e) {
         // Close loading dialog
         if (mounted) Navigator.pop(context);
 
-        // Show error
+        // ❌ ERROR - Show error
         if (mounted) {
           showDialog(
             context: context,
@@ -422,6 +429,9 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
               ],
             ),
           );
+
+          // ❌ CRITICAL: Do NOT pop the create screen - stay to allow retry
+          // No Navigator.pop() here
         }
       }
     } else if (items.isEmpty) {

@@ -216,14 +216,29 @@ class _CreateMachineCertificateState extends State<CreateMachineCertificate> {
       if (!mounted) return;
 
       if (controller.errorMessage != null) {
+        // ❌ ERROR - Show error and stay on page
         _showSnackBar(controller.errorMessage!, isError: true);
+        // ❌ Do NOT pop - user stays on page to retry
       } else {
+        // ✅ SUCCESS - Show success message and return true
         _showSnackBar('Machine Certificate created successfully!');
-        Navigator.pop(context, true);
+
+        // Wait a moment for the snackbar to show
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // ✅ CRITICAL: Return true to indicate successful creation
+        if (mounted) {
+          Navigator.pop(
+            context,
+            true,
+          ); // <-- Changed from just pop() to pop(context, true)
+        }
       }
     } catch (e) {
+      // ❌ ERROR - Show error and stay on page
       if (mounted) {
         _showSnackBar('Error creating certificate: $e', isError: true);
+        // ❌ Do NOT pop - user stays on page to retry
       }
     }
   }

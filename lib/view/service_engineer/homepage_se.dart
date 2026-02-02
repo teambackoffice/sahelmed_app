@@ -446,7 +446,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.1),
               spreadRadius: 1,
               blurRadius: 10,
               offset: Offset(0, 2),
