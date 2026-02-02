@@ -12,7 +12,7 @@ class CreateMaterialRequestProvider extends ChangeNotifier {
     required String materialRequestType,
     required String company,
     required String setWarehouse,
-    required String scheduleDate,
+    required String requiredByDate,
     required List<Map<String, dynamic>> items,
   }) async {
     isLoading = true;
@@ -24,7 +24,7 @@ class CreateMaterialRequestProvider extends ChangeNotifier {
         materialRequestType: materialRequestType,
         company: company,
         setWarehouse: setWarehouse,
-        scheduleDate: scheduleDate,
+        scheduleDate: requiredByDate,
         items: items,
       );
     } catch (e) {

@@ -41,7 +41,7 @@ class CreateMaterialRequestService {
       "material_request_type": materialRequestType,
       "company": company,
       "set_warehouse": setWarehouse,
-      "schedule_date": scheduleDate,
+      "required_date": scheduleDate,
       "items": items,
     });
 

@@ -337,7 +337,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
         await context
             .read<CreateMaterialRequestProvider>()
             .createMaterialRequest(
-              scheduleDate: _requiredByDate.toString(),
+              requiredByDate: _requiredByDate.toString(),
               materialRequestType: _selectedPurpose!,
               company: 'Al Sahel',
               setWarehouse: _selectedWarehouse!,
