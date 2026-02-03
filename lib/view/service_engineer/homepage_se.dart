@@ -41,7 +41,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
       listen: false,
     );
 
-    bool? confirm = await showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
@@ -117,7 +117,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
 
               const SizedBox(height: 32),
 
-              // Buttons
+              // Buttons with loading state
               Consumer<LogoutController>(
                 builder: (_, controller, __) {
                   return Padding(
@@ -130,7 +130,15 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                           child: ElevatedButton(
                             onPressed: controller.isLoading
                                 ? null
-                                : () => Navigator.pop(context, true),
+                                : () async {
+                                    // Perform logout
+                                    final success = await logoutController
+                                        .logout();
+
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop(success);
+                                    }
+                                  },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: AppColors.darkNavy,
@@ -200,42 +208,46 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
       ),
     );
 
-    if (confirm == true) {
-      final success = await logoutController.logout();
-      if (success && context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    logoutController.errorMessage ?? 'Logout failed',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
+    // Check if logout was successful
+    final success =
+        logoutController.isLoading == false &&
+        logoutController.errorMessage == null;
+
+    if (success && context.mounted) {
+      // Navigate to login screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } else if (logoutController.errorMessage != null && context.mounted) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  logoutController.errorMessage ?? 'Logout failed',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ],
-            ),
-            backgroundColor: Colors.red[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
+              ),
+            ],
           ),
-        );
-      }
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

@@ -169,11 +169,9 @@ class LoginService {
   Future<void> printAllStoredValues() async {
     final allValues = await _storage.readAll();
 
-    debugPrint('========== STORED VALUES ==========');
     allValues.forEach((key, value) {
       debugPrint('$key : $value');
     });
-    debugPrint('===================================');
   }
 
   /// ============================

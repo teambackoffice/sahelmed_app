@@ -157,8 +157,6 @@ class Visit {
         modifiedBy: json["modified_by"] ?? "",
       );
     } catch (e) {
-      print('Error parsing Visit: $e');
-      print('JSON data: $json');
       rethrow;
     }
   }
@@ -217,8 +215,6 @@ class Purpose {
         softwareEngineer: json["software_engineer"],
       );
     } catch (e) {
-      print('Error parsing Purpose: $e');
-      print('JSON data: $json');
       rethrow;
     }
   }

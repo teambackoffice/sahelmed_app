@@ -37,7 +37,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
         });
       }
     } catch (e) {
-      print('Failed to load full name: $e');
       if (mounted) {
         _showMessage('Failed to load full name', isError: true);
       }
@@ -78,12 +77,7 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
           }
         });
       }
-
-      print(
-        'Session data loaded: sessionId=$sessionId, employeeId=$employeeId, isCheckedIn=$isCheckedIn, date=$savedDate',
-      );
     } catch (e) {
-      print('Failed to load session data: $e');
       if (mounted) {
         _showMessage('Failed to load session data', isError: true);
       }

@@ -37,7 +37,6 @@ class LeadController extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = 'Failed to load leads: ${e.toString()}';
-      print('Error fetching leads: $e'); // For debugging
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -64,7 +64,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
         _isLoadingDocuments = false;
       });
     } catch (e) {
-      print('Error loading document status: $e');
       setState(() => _isLoadingDocuments = false);
     }
   }
@@ -85,9 +84,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
         key: 'material_$visitId',
         value: _hasMaterialRequest.toString(),
       );
-    } catch (e) {
-      print('Error saving document status: $e');
-    }
+    } catch (e) {}
   }
 
   // Optional: Clear document status for this visit
@@ -123,9 +120,7 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
           ),
         );
       }
-    } catch (e) {
-      print('Error clearing document status: $e');
-    }
+    } catch (e) {}
   }
 
   Color _getStatusColor(String status) {
@@ -192,10 +187,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
       // Map the UI status to API status
       final apiStatus = _mapStatusToApi(newStatus);
 
-      print(
-        '🔄 Updating visit ${widget.visitObject!.id} to status: $apiStatus',
-      );
-
       await controller.updateVisitStatus(
         visitId: widget.visitObject!.id,
         visitStatus: apiStatus,
@@ -238,8 +229,6 @@ class _MaintenanceVisitDetailState extends State<MaintenanceVisitDetail> {
         }
       }
     } catch (e) {
-      print('❌ Error updating status: $e');
-
       final errorMessage = e.toString().replaceAll('Exception: ', '');
 
       if (mounted) {
