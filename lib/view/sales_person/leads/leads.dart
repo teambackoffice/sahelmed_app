@@ -16,7 +16,10 @@ class _LeadspageState extends State<Leadspage> {
   @override
   void initState() {
     super.initState();
-    _loadLeads();
+    // Defer the load until after the first frame to avoid calling setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLeads();
+    });
   }
 
   Future<void> _loadLeads() async {

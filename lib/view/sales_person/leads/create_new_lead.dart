@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/create_lead_provider.dart';
+import 'package:sahelmed_app/providers/get_leads_provider.dart';
 
 class CreateNewLead extends StatefulWidget {
   const CreateNewLead({super.key});
@@ -83,8 +84,9 @@ class _CreateNewLeadState extends State<CreateNewLead> {
           _selectedSource = null;
         });
 
-        // Optionally navigate back
-        // Navigator.pop(context);
+        // Navigate back after successful submission
+        Navigator.pop(context);
+        context.read<LeadController>().getLeads();
       }
     }
   }
