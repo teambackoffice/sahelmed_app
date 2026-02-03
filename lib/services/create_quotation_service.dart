@@ -31,51 +31,41 @@ class CreateQuotationService {
       throw Exception('Session expired. Please login again.');
     }
 
-    // 🔹 PREPARE ITEMS AND CONVERT IMAGES TO BASE64 DATA URI
+    // 🔹 PREPARE ITEMS
     List<Map<String, dynamic>> finalItems = [];
 
     for (int i = 0; i < items.length; i++) {
       final item = Map<String, dynamic>.from(items[i]);
 
-      // 📷 IMAGE HANDLING - Convert to Base64 Data URI
-      if (item.containsKey('image_file')) {
-        if (item['image_file'] is File) {
-          final File imageFile = item['image_file'];
-          final String fileName = imageFile.path.split('/').last;
+      // 📷 IMAGE HANDLING
+      if (item.containsKey('image_file') && item['image_file'] is File) {
+        final File imageFile = item['image_file'];
+        final String fileName = imageFile.path.split('/').last;
 
-          if (await imageFile.exists()) {
-            // Read file as bytes
-            final bytes = await imageFile.readAsBytes();
+        if (await imageFile.exists()) {
+          final bytes = await imageFile.readAsBytes();
 
-            // Detect MIME type
-            final mimeType =
-                lookupMimeType(imageFile.path, headerBytes: bytes) ??
-                'image/jpeg';
+          final mimeType =
+              lookupMimeType(imageFile.path, headerBytes: bytes) ??
+              'image/jpeg';
 
-            // Convert to base64
-            final base64Image = base64Encode(bytes);
+          final base64Image = base64Encode(bytes);
+          final dataUri = 'data:$mimeType;base64,$base64Image';
 
-            // Create data URI (data:image/png;base64,...)
-            final dataUri = 'data:$mimeType;base64,$base64Image';
+          item['image_b64'] = dataUri;
+          item['image_filename'] = fileName;
 
-            // Backend expects these exact field names
-            item['image_b64'] = dataUri;
-            item['image_filename'] = fileName;
-
-            // Remove the old fields
-            item.remove('image');
-            item.remove('image_file');
-          } else {}
-        } else {}
-      } else {}
+          item.remove('image');
+          item.remove('image_file');
+        }
+      }
 
       finalItems.add(item);
     }
 
-    // ============= JSON POST REQUEST =============
+    // 🔐 HEADERS
     final headers = <String, String>{'Content-Type': 'application/json'};
 
-    // 🔐 SET AUTHENTICATION HEADERS
     if (apiKey != null && apiSecret != null) {
       headers['Authorization'] = 'token $apiKey:$apiSecret';
     } else if (sessionId != null) {
@@ -83,7 +73,7 @@ class CreateQuotationService {
       headers['Cookie'] = 'sid=$sessionId';
     }
 
-    // 🔹 BUILD JSON BODY (matching backend format exactly)
+    // 🔹 BODY
     final body = {
       'quotation_to': quotationTo,
       'party_name': partyName,
@@ -102,17 +92,7 @@ class CreateQuotationService {
 
     final jsonBody = jsonEncode(body);
 
-    if (finalItems.isNotEmpty && finalItems.first.containsKey('image_b64')) {
-      final sampleItem = Map<String, dynamic>.from(finalItems.first);
-      if (sampleItem['image_b64'] != null &&
-          sampleItem['image_b64'].length > 100) {
-        final b64String = sampleItem['image_b64'] as String;
-        sampleItem['image_b64'] =
-            '${b64String.substring(0, 50)}... [TRUNCATED ${b64String.length} chars]';
-      }
-    }
-
-    // 🚀 SEND REQUEST
+    // 🚀 API CALL
     final response = await http.post(
       Uri.parse(_url),
       headers: headers,
@@ -122,22 +102,20 @@ class CreateQuotationService {
     return _handleResponse(response.statusCode, response.body);
   }
 
+  // ================= RESPONSE HANDLER =================
+
   QuotationResponse _handleResponse(int statusCode, String responseBody) {
-    // 🔍 TRY JSON DECODE
     try {
       final decoded = json.decode(responseBody);
     } catch (e) {}
 
-    // ✅ HANDLE RESPONSE
     if (statusCode == 200) {
       final decoded = json.decode(responseBody);
 
-      // Check if the response indicates success or error
       if (decoded['message'] != null && decoded['message'] is Map) {
         final msg = decoded['message'];
 
         if (msg['success'] == false) {
-          // Backend returned an error
           final errorMsg = msg['message'] ?? 'Quotation creation failed';
           final errorDetails = msg['error_details'];
 
@@ -150,20 +128,23 @@ class CreateQuotationService {
       }
 
       return quotationResponseFromJson(responseBody);
-    } else if (statusCode == 401) {
+    }
+
+    if (statusCode == 401) {
       throw Exception('Authentication failed. Please login again.');
-    } else {
-      try {
-        final decoded = json.decode(responseBody);
-        final errorMsg =
-            decoded['message'] ??
-            decoded['error'] ??
-            decoded['exc'] ??
-            'Quotation creation failed';
-        throw Exception(errorMsg);
-      } catch (e) {
-        throw Exception('Server error: $statusCode');
-      }
+    }
+
+    try {
+      final decoded = json.decode(responseBody);
+      final errorMsg =
+          decoded['message'] ??
+          decoded['error'] ??
+          decoded['exc'] ??
+          'Quotation creation failed';
+
+      throw Exception(errorMsg);
+    } catch (e) {
+      throw Exception('Server error: $statusCode');
     }
   }
 }

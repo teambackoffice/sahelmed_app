@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     
     <application
-        android:label="sahelmed_app"
+        android:label="Al Sahel MedApp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

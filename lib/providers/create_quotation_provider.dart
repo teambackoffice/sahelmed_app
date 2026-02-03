@@ -17,6 +17,7 @@ class CreateQuotationController extends ChangeNotifier {
   Future<void> createQuotation({
     required String quotationTo,
     required String partyName,
+    required String validTill,
     required List<Map<String, dynamic>> items,
   }) async {
     _isLoading = true;
@@ -27,6 +28,7 @@ class CreateQuotationController extends ChangeNotifier {
       _quotationResponse = await _service.createQuotation(
         quotationTo: quotationTo,
         partyName: partyName,
+        validTill: validTill,
         items: items,
       );
     } catch (e) {

@@ -31,6 +31,30 @@ class QuotationItem {
   late final TextEditingController quantityController;
   late final TextEditingController rateController;
 
+  // Available UOM options
+  static const List<String> uomOptions = [
+    'Nos',
+    'Unit',
+    'Box',
+    'Set',
+    'Pair',
+    'Kg',
+    'Kilogram',
+    'Gram',
+    'Litre',
+    'Millilitre',
+    'Meter',
+    'Centimeter',
+    'Millimeter',
+    'Decimeter',
+    'Inch',
+    'Foot',
+    'Hand',
+    'Chain',
+    'Calibre',
+    'Barleycorn',
+  ];
+
   QuotationItem({
     this.id,
     this.itemCode = '',
@@ -95,6 +119,9 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
   Customer? selectedCustomer;
   Lead? selectedLead;
+
+  // Store actual DateTime for valid_till to format correctly
+  DateTime? validTillDate;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -184,6 +211,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
     if (picked != null) {
       setState(() {
+        validTillDate = picked; // Store the DateTime object
         validTillController.text = DateFormat('dd-MM-yyyy').format(picked);
       });
     }
@@ -1191,6 +1219,111 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
             const SizedBox(height: 16),
 
+            // UOM Selection - Modern Dropdown Button
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Unit of Measure',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF6B7280),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF6366F1).withOpacity(0.05),
+                        const Color(0xFF3B82F6).withOpacity(0.02),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF6366F1).withOpacity(0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _showUOMPicker(context, index),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.straighten_rounded,
+                                color: Color(0xFF2563EB),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Selected Unit',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    item.uom,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1F2937),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.unfold_more_rounded,
+                                color: Color(0xFF2563EB),
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
             // Quantity and Rate Row
             Row(
               children: [
@@ -1210,7 +1343,7 @@ class _CreateQuotationState extends State<CreateQuotation> {
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'Qty',
+                      labelText: 'Quantity',
                       labelStyle: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1575,6 +1708,212 @@ class _CreateQuotationState extends State<CreateQuotation> {
     );
   }
 
+  Future<void> _showUOMPicker(BuildContext context, int index) async {
+    final selectedUOM = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          margin: const EdgeInsets.all(12),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              /// Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.straighten_rounded,
+                        color: Color(0xFF2563EB),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Select Unit of Measure',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Choose the measurement unit',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// UOM List
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: QuotationItem.uomOptions.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, thickness: 0.5),
+                  itemBuilder: (context, i) {
+                    final uom = QuotationItem.uomOptions[i];
+                    final isSelected = uom == items[index].uom;
+
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context, uom),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(
+                                          0xFF6366F1,
+                                        ).withOpacity(0.15)
+                                      : const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    uom.substring(0, 1).toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  uom,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF1F2937)
+                                        : const Color(0xFF4B5563),
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// Cancel Button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    backgroundColor: const Color(0xFFF3F4F6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selectedUOM != null) {
+      setState(() {
+        items[index].uom = selectedUOM;
+      });
+    }
+  }
+
   Future<void> _submitQuotation(CreateQuotationController controller) async {
     // Validation: Ensure valid name
     if (nameController.text.trim().isEmpty) {
@@ -1603,10 +1942,17 @@ class _CreateQuotationState extends State<CreateQuotation> {
       partyName = selectedLead!.id;
     }
 
+    // Convert valid_till date to YYYY-MM-DD format
+    String? validTillFormatted;
+    if (validTillDate != null) {
+      validTillFormatted = DateFormat('yyyy-MM-dd').format(validTillDate!);
+    }
+
     // Submit quotation
     await controller.createQuotation(
       quotationTo: quotationTo,
       partyName: partyName,
+      validTill: validTillFormatted ?? '',
       items: itemsData,
     );
 
