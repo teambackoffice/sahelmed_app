@@ -338,28 +338,29 @@ class ItemSearchDialogState extends State<ItemSearchDialog> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
+                                            if (item.prices.isNotEmpty)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF10B981,
+                                                  ).withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  '₹${item.prices.first.rate.toStringAsFixed(2)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF2563EB),
+                                                    fontWeight: FontWeight.w600,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFF10B981,
-                                                ).withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                '₹${item.prices.first.rate.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF2563EB),
-                                                  fontWeight: FontWeight.w600,
                                                 ),
                                               ),
-                                            ),
                                           ],
                                         ),
                                       ],
