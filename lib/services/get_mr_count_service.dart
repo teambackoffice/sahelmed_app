@@ -28,11 +28,6 @@ class GetMaterialRequestCountService {
         },
       );
 
-      // 🖨️ PRINT ALL RESPONSE DETAILS
-      print('🔵 MR COUNT API URL: $_url');
-      print('🔵 STATUS CODE: ${response.statusCode}');
-      print('🔵 RESPONSE BODY: ${response.body}');
-
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         return MaterialRequestCountModel.fromJson(decoded['message']);
@@ -44,9 +39,6 @@ class GetMaterialRequestCountService {
         );
       }
     } catch (e, stackTrace) {
-      print('🔴 ERROR IN getMaterialRequestCount');
-      print('🔴 ERROR: $e');
-      print('🔴 STACKTRACE: $stackTrace');
       rethrow;
     }
   }

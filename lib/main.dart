@@ -11,6 +11,7 @@ import 'package:sahelmed_app/providers/get_leads_provider.dart';
 import 'package:sahelmed_app/providers/get_machine_service_certi_provider.dart';
 import 'package:sahelmed_app/providers/get_material_request_provider.dart';
 import 'package:sahelmed_app/providers/get_mr_count_provider.dart';
+import 'package:sahelmed_app/providers/get_msc_count_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_count_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_provider.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
@@ -57,6 +58,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GetMvCountProvider()),
         ChangeNotifierProvider(
           create: (_) => GetMaterialRequestCountProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => GetMachineServiceCertificateCountProvider(),
         ),
       ],
       child: MaterialApp(

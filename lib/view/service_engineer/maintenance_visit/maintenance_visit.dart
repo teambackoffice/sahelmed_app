@@ -42,6 +42,24 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
     }).toList();
   }
 
+  int _getFilterCount(List<Visit> visits, String filter) {
+    if (filter == 'All') return visits.length;
+
+    return visits.where((v) {
+      final status = v.customVisitStatus.toLowerCase();
+      switch (filter) {
+        case 'Open':
+          return status == 'open';
+        case 'In Progress':
+          return status == 'assigned' || status == 'in progress';
+        case 'Completed':
+          return status == 'completed';
+        default:
+          return true;
+      }
+    }).length;
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'open':
@@ -121,7 +139,7 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  child: _buildFilterChips(),
+                  child: _buildFilterChips(controller.visits),
                 ),
               ),
               if (controller.isLoading)
@@ -148,7 +166,7 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
     );
   }
 
-  Widget _buildFilterChips() {
+  Widget _buildFilterChips(List<Visit> visits) {
     final filters = ['All', 'Open', 'In Progress', 'Completed'];
 
     return SizedBox(
@@ -160,9 +178,38 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
         itemBuilder: (context, index) {
           final filter = filters[index];
           final isSelected = _selectedFilter == filter;
+          final count = _getFilterCount(visits, filter);
 
           return FilterChip(
-            label: Text(filter),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(filter),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.3)
+                        : const Color(0xFF5B8DEF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF5B8DEF),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             selected: isSelected,
             onSelected: (selected) {
               setState(() => _selectedFilter = filter);

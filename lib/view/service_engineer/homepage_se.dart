@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/get_mr_count_provider.dart';
+import 'package:sahelmed_app/providers/get_msc_count_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_count_provider.dart';
 import 'package:sahelmed_app/view/login_page.dart';
@@ -19,8 +20,6 @@ class ServiceEngineerHomepage extends StatefulWidget {
 }
 
 class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
-  int serviceCertificateCount = 2;
-
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String fullName = '';
@@ -29,7 +28,11 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
   void initState() {
     super.initState();
     _loadFullName();
-    _fetchCounts();
+    // Defer _fetchCounts() to after the build phase completes
+    // This prevents calling notifyListeners() during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchCounts();
+    });
   }
 
   Future<void> _loadFullName() async {
@@ -53,10 +56,18 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
       listen: false,
     );
 
-    // Fetch both counts concurrently
+    // Fetch Machine Service Certificate Count
+    final mscCountProvider =
+        Provider.of<GetMachineServiceCertificateCountProvider>(
+          context,
+          listen: false,
+        );
+
+    // Fetch all counts concurrently
     await Future.wait([
       mvCountProvider.fetchMvCount(),
       mrCountProvider.fetchMaterialRequestCount(),
+      mscCountProvider.fetchTotalCount(),
     ]);
   }
 
@@ -409,133 +420,150 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
 
               const SizedBox(height: 16),
 
-              // Enhanced Menu Items with Multiple Consumers
-              Consumer2<GetMvCountProvider, GetMaterialRequestCountProvider>(
-                builder: (context, mvCountProvider, mrCountProvider, child) {
-                  // Show loading if either is loading
-                  if (mvCountProvider.isLoading || mrCountProvider.isLoading) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(40.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
+              // Enhanced Menu Items with Multiple Consumers (Consumer3)
+              Consumer3<
+                GetMvCountProvider,
+                GetMaterialRequestCountProvider,
+                GetMachineServiceCertificateCountProvider
+              >(
+                builder:
+                    (
+                      context,
+                      mvCountProvider,
+                      mrCountProvider,
+                      mscCountProvider,
+                      child,
+                    ) {
+                      // Show loading if any is loading
+                      if (mvCountProvider.isLoading ||
+                          mrCountProvider.isLoading ||
+                          mscCountProvider.isLoading) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
 
-                  // Show error if either has error
-                  if (mvCountProvider.errorMessage != null ||
-                      mrCountProvider.error != null) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 48,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Failed to load data',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.red,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              mvCountProvider.errorMessage ??
-                                  mrCountProvider.error ??
-                                  '',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _refreshData,
-                              icon: Icon(Icons.refresh),
-                              label: Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.darkNavy,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
+                      // Show error if any has error
+                      if (mvCountProvider.errorMessage != null ||
+                          mrCountProvider.error != null ||
+                          mscCountProvider.errorMessage.isNotEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 48,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Failed to load data',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.red,
+                                  ),
                                 ),
-                              ),
+                                SizedBox(height: 8),
+                                Text(
+                                  mvCountProvider.errorMessage ??
+                                      mrCountProvider.error ??
+                                      mscCountProvider.errorMessage,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _refreshData,
+                                  icon: Icon(Icons.refresh),
+                                  label: Text('Retry'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.darkNavy,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
+                          ),
+                        );
+                      }
 
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                    childAspectRatio: 1.0,
-                    children: [
-                      _buildEnhancedMenuItem(
-                        icon: Icons.description_outlined,
-                        title: 'Assigned Visit',
-                        subtitle: '',
-                        color: Colors.orange,
-                        count: mvCountProvider.totalCount,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MaintenanceVisit(),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildEnhancedMenuItem(
-                        icon: Icons.shopping_cart,
-                        title: 'Material Request',
-                        subtitle: '',
-                        color: Colors.orange,
-                        count:
-                            mrCountProvider.materialRequestCount?.totalCount ??
-                            0,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MaterialRequestList(),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildEnhancedMenuItem(
-                        icon: Icons.workspace_premium_outlined,
-                        title: 'Machine Service Certificate',
-                        subtitle: '',
-                        color: Colors.orange,
-                        count: serviceCertificateCount,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MachineServiceCertificate(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                },
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 15,
+                        mainAxisSpacing: 15,
+                        childAspectRatio: 0.95, // Adjusted to prevent overflow
+                        children: [
+                          _buildEnhancedMenuItem(
+                            icon: Icons.description_outlined,
+                            title: 'Assigned Visit',
+                            subtitle: '',
+
+                            color: Colors.orange,
+                            count: mvCountProvider.totalCount,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MaintenanceVisit(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildEnhancedMenuItem(
+                            icon: Icons.shopping_cart,
+                            title: 'Material Request',
+                            subtitle: '',
+                            color: Colors.orange,
+                            count:
+                                mrCountProvider
+                                    .materialRequestCount
+                                    ?.totalCount ??
+                                0,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MaterialRequestList(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildEnhancedMenuItem(
+                            icon: Icons.workspace_premium_outlined,
+                            title: 'Machine Service Certificate',
+                            subtitle: '',
+                            color: Colors.orange,
+                            count: mscCountProvider.totalCount,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MachineServiceCertificate(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
               ),
 
               const SizedBox(height: 32),
@@ -556,102 +584,88 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+              spreadRadius: 0,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Top Content
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              color.withOpacity(0.15),
-                              color.withOpacity(0.08),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(icon, color: color, size: 32),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                          letterSpacing: 0.2,
-                        ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Icon Container
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 32),
+              ),
+
+              const SizedBox(height: 2),
+
+              // Title
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  height: 1.3,
+                  letterSpacing: 0.2,
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              // Count Section
+              if (count != null)
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF475569), Color(0xFF334155)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF475569).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+            ],
           ),
-
-          // Top-right badge with count
-          if (count != null && count > 0)
-            Positioned(
-              top: -6,
-              right: -6,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 32),
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.red.shade400, Colors.red.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white, width: 2.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    count > 99 ? '99+' : count.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
