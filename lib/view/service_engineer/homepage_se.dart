@@ -420,7 +420,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
 
               const SizedBox(height: 16),
 
-              // Enhanced Menu Items with Multiple Consumers (Consumer3)
+              // Enhanced Menu Items - Always show grid, loading only on count
               Consumer3<
                 GetMvCountProvider,
                 GetMaterialRequestCountProvider,
@@ -434,90 +434,22 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                       mscCountProvider,
                       child,
                     ) {
-                      // Show loading if any is loading
-                      if (mvCountProvider.isLoading ||
-                          mrCountProvider.isLoading ||
-                          mscCountProvider.isLoading) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      // Show error if any has error
-                      if (mvCountProvider.errorMessage != null ||
-                          mrCountProvider.error != null ||
-                          mscCountProvider.errorMessage.isNotEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red,
-                                  size: 48,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Failed to load data',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  mvCountProvider.errorMessage ??
-                                      mrCountProvider.error ??
-                                      mscCountProvider.errorMessage,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _refreshData,
-                                  icon: Icon(Icons.refresh),
-                                  label: Text('Retry'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.darkNavy,
-                                    foregroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
                       return GridView.count(
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         crossAxisCount: 2,
                         crossAxisSpacing: 15,
                         mainAxisSpacing: 15,
-                        childAspectRatio: 0.95, // Adjusted to prevent overflow
+                        childAspectRatio: 0.95,
                         children: [
                           _buildEnhancedMenuItem(
                             icon: Icons.description_outlined,
                             title: 'Assigned Visit',
                             subtitle: '',
-
                             color: Colors.orange,
                             count: mvCountProvider.totalCount,
+                            isLoading: mvCountProvider.isLoading,
+                            hasError: mvCountProvider.errorMessage != null,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -537,6 +469,8 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                                     .materialRequestCount
                                     ?.totalCount ??
                                 0,
+                            isLoading: mrCountProvider.isLoading,
+                            hasError: mrCountProvider.error != null,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -552,6 +486,8 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                             subtitle: '',
                             color: Colors.orange,
                             count: mscCountProvider.totalCount,
+                            isLoading: mscCountProvider.isLoading,
+                            hasError: mscCountProvider.errorMessage.isNotEmpty,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -581,6 +517,8 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
     required Color color,
     required VoidCallback onTap,
     int? count,
+    bool isLoading = false,
+    bool hasError = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -631,38 +569,68 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
 
               const SizedBox(height: 2),
 
-              // Count Section
-              if (count != null)
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF475569), Color(0xFF334155)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFF475569).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
+              // Count Section with Loading/Error States
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF475569), Color(0xFF334155)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: Center(
-                    child: Text(
-                      count > 99 ? '99+' : count.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                      ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFF475569).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
                     ),
-                  ),
+                  ],
                 ),
+                child: Center(
+                  child: isLoading
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(3, (index) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 1.5),
+                              child: TweenAnimationBuilder(
+                                tween: Tween<double>(begin: 0.0, end: 1.0),
+                                duration: Duration(milliseconds: 600),
+                                builder: (context, double value, child) {
+                                  return Transform.translate(
+                                    offset: Offset(
+                                      0,
+                                      -4 * (value > 0.5 ? 1 - value : value),
+                                    ),
+                                    child: Container(
+                                      width: 4,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }),
+                        )
+                      : hasError
+                      ? Icon(Icons.error_outline, color: Colors.white, size: 20)
+                      : Text(
+                          (count ?? 0) > 99 ? '99+' : (count ?? 0).toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                ),
+              ),
             ],
           ),
         ),
