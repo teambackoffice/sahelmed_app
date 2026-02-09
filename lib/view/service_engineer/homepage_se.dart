@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
+import 'package:sahelmed_app/providers/get_mr_count_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_count_provider.dart';
 import 'package:sahelmed_app/view/login_page.dart';
@@ -18,7 +19,6 @@ class ServiceEngineerHomepage extends StatefulWidget {
 }
 
 class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
-  int materialRequestCount = 7;
   int serviceCertificateCount = 2;
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -41,11 +41,23 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
   }
 
   Future<void> _fetchCounts() async {
+    // Fetch MV Count
     final mvCountProvider = Provider.of<GetMvCountProvider>(
       context,
       listen: false,
     );
-    await mvCountProvider.fetchMvCount();
+
+    // Fetch Material Request Count
+    final mrCountProvider = Provider.of<GetMaterialRequestCountProvider>(
+      context,
+      listen: false,
+    );
+
+    // Fetch both counts concurrently
+    await Future.wait([
+      mvCountProvider.fetchMvCount(),
+      mrCountProvider.fetchMaterialRequestCount(),
+    ]);
   }
 
   Future<void> _refreshData() async {
@@ -397,10 +409,11 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
 
               const SizedBox(height: 16),
 
-              // Enhanced Menu Items with Consumer
-              Consumer<GetMvCountProvider>(
-                builder: (context, mvCountProvider, child) {
-                  if (mvCountProvider.isLoading) {
+              // Enhanced Menu Items with Multiple Consumers
+              Consumer2<GetMvCountProvider, GetMaterialRequestCountProvider>(
+                builder: (context, mvCountProvider, mrCountProvider, child) {
+                  // Show loading if either is loading
+                  if (mvCountProvider.isLoading || mrCountProvider.isLoading) {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(40.0),
@@ -409,7 +422,9 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                     );
                   }
 
-                  if (mvCountProvider.errorMessage != null) {
+                  // Show error if either has error
+                  if (mvCountProvider.errorMessage != null ||
+                      mrCountProvider.error != null) {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
@@ -431,7 +446,9 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              mvCountProvider.errorMessage ?? '',
+                              mvCountProvider.errorMessage ??
+                                  mrCountProvider.error ??
+                                  '',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
@@ -489,7 +506,9 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                         title: 'Material Request',
                         subtitle: '',
                         color: Colors.orange,
-                        count: materialRequestCount,
+                        count:
+                            mrCountProvider.materialRequestCount?.totalCount ??
+                            0,
                         onTap: () {
                           Navigator.push(
                             context,
