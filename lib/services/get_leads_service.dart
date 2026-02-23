@@ -10,14 +10,15 @@ class LeadService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<GetLeadModal> fetchLeads() async {
-    // 🔐 Read sid from secure storage
     final sid = await _storage.read(key: 'session_id');
 
     if (sid == null) {
       throw Exception('Session expired. Please login again.');
     }
 
-    final request = http.Request('GET', Uri.parse(_baseUrl));
+    final uri = Uri.parse(_baseUrl).replace(queryParameters: {'limit': 'all'});
+
+    final request = http.Request('GET', uri);
 
     // 🍪 Attach cookie
     request.headers.addAll({

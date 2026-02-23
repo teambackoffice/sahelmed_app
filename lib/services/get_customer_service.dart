@@ -21,7 +21,11 @@ class GetCustomerService {
       'Cookie': 'sid=$sessionId',
     };
 
-    final response = await http.get(Uri.parse(_url), headers: headers);
+    final uri = Uri.parse(
+      _url,
+    ).replace(queryParameters: {'disabled': '0', 'limit': 'all'});
+
+    final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       return customerResponseFromJson(response.body);
