@@ -17,7 +17,7 @@ class GetQuotationService {
       throw Exception('Session expired. Please login again.');
     }
 
-    final uri = Uri.parse(_baseUrl);
+    final uri = Uri.parse(_baseUrl).replace(queryParameters: {'limit': 'all'});
 
     final response = await http.get(
       uri,
