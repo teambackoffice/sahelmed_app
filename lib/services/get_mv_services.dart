@@ -20,7 +20,9 @@ class GetMaintenanceVisitService {
       'Content-Type': 'application/json',
     };
 
-    final request = http.Request('GET', Uri.parse(_url));
+    final uri = Uri.parse(_url).replace(queryParameters: {'limit': 'all'});
+
+    final request = http.Request('GET', uri);
     request.headers.addAll(headers);
 
     final response = await request.send();
