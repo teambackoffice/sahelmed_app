@@ -23,7 +23,7 @@ class GetMachineRequestService {
       'Cookie': 'sid=$sessionId',
     };
 
-    final uri = Uri.parse(_url).replace(queryParameters: {});
+    final uri = Uri.parse(_url).replace(queryParameters: {'limit': 'all'});
 
     final request = http.Request('GET', uri);
     request.headers.addAll(headers);
