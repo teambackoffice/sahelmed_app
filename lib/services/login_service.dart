@@ -74,10 +74,7 @@ class LoginService {
               value: jsonEncode(employeeInfo),
             );
 
-            /// Store employee name separately (HR-EMP-00002)
             await _writeIfNotNull('employee_name', employeeInfo['name']);
-
-            /// (Optional but useful)
             await _writeIfNotNull(
               'employee_display_name',
               employeeInfo['employee_name'],
@@ -119,12 +116,8 @@ class LoginService {
           );
         }
 
-        /// 🔐 PRINT EVERYTHING STORED (uncomment for debugging)
-        // await printAllStoredValues();
-
         return decoded;
       } else {
-        // Handle non-200 status codes
         String errorMsg = 'Login failed';
 
         if (decoded['message'] != null) {
@@ -145,7 +138,6 @@ class LoginService {
     } on http.ClientException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
-      // Clean up the error message
       String errorMsg = e.toString();
       if (errorMsg.startsWith('Exception: ')) {
         errorMsg = errorMsg.replaceFirst('Exception: ', '');
@@ -153,6 +145,7 @@ class LoginService {
       if (errorMsg.startsWith('Login error: Exception: ')) {
         errorMsg = errorMsg.replaceFirst('Login error: Exception: ', '');
       }
+
       throw Exception(errorMsg);
     }
   }
@@ -169,81 +162,24 @@ class LoginService {
   Future<void> printAllStoredValues() async {
     final allValues = await _storage.readAll();
 
-    allValues.forEach((key, value) {
-      debugPrint('$key : $value');
-    });
+    allValues.forEach((key, value) {});
   }
 
   /// ============================
   /// GETTERS
   /// ============================
   Future<String?> getApiKey() async {
-    return await _storage.read(key: 'api_key');
+    final value = await _storage.read(key: 'api_key');
   }
 
   Future<String?> getApiSecret() async {
-    return await _storage.read(key: 'api_secret');
+    final value = await _storage.read(key: 'api_secret');
+    return value;
   }
 
   Future<String?> getSessionId() async {
-    return await _storage.read(key: 'session_id');
-  }
-
-  Future<String?> getUserId() async {
-    return await _storage.read(key: 'user_id');
-  }
-
-  Future<String?> getFullName() async {
-    return await _storage.read(key: 'full_name');
-  }
-
-  Future<String?> getEmail() async {
-    return await _storage.read(key: 'email');
-  }
-
-  Future<String?> getUserImage() async {
-    return await _storage.read(key: 'user_image');
-  }
-
-  Future<String?> getEmployeeName() async {
-    return await _storage.read(key: 'employee_name');
-  }
-
-  Future<String?> getEmployeeId() async {
-    return await _storage.read(key: 'employee_id');
-  }
-
-  Future<Map<String, dynamic>?> getUserInfo() async {
-    final data = await _storage.read(key: 'user_info');
-    return data != null ? jsonDecode(data) : null;
-  }
-
-  Future<Map<String, dynamic>?> getEmployeeInfo() async {
-    final data = await _storage.read(key: 'employee_info');
-    return data != null ? jsonDecode(data) : null;
-  }
-
-  Future<List<String>> getRoles() async {
-    final data = await _storage.read(key: 'roles');
-    if (data != null) {
-      return List<String>.from(jsonDecode(data));
-    }
-    return [];
-  }
-
-  Future<Map<String, dynamic>?> getPermissions() async {
-    final data = await _storage.read(key: 'permissions');
-    return data != null ? jsonDecode(data) : null;
-  }
-
-  Future<bool> isServiceEngineer() async {
-    final value = await _storage.read(key: 'is_service_engineer');
-    return value == 'true';
-  }
-
-  Future<bool> isSystemManager() async {
-    final value = await _storage.read(key: 'is_system_manager');
-    return value == 'true';
+    final value = await _storage.read(key: 'session_id');
+    return value;
   }
 
   Future<bool> isLoggedIn() async {
@@ -251,21 +187,41 @@ class LoginService {
     return sessionId != null && sessionId.isNotEmpty;
   }
 
-  Future<Map<String, dynamic>?> getLoginResponse() async {
-    final data = await _storage.read(key: 'login_response');
-    return data != null ? jsonDecode(data) : null;
-  }
-
-  Future<String?> getHomePage() async {
-    return await _storage.read(key: 'home_page');
-  }
-
   /// ============================
   /// LOGOUT
   /// ============================
   Future<void> logout() async {
     await _storage.deleteAll();
-    debugPrint('User logged out - all data cleared');
+  }
+
+  /// ============================
+  /// GET ROLES
+  /// ============================
+  Future<List<String>> getRoles() async {
+    final data = await _storage.read(key: 'roles');
+
+    if (data != null) {
+      try {
+        return List<String>.from(jsonDecode(data));
+      } catch (e) {}
+    }
+
+    return [];
+  }
+
+  /// ============================
+  /// GET PERMISSIONS
+  /// ============================
+  Future<Map<String, dynamic>?> getPermissions() async {
+    final data = await _storage.read(key: 'permissions');
+
+    if (data != null) {
+      try {
+        return jsonDecode(data);
+      } catch (e) {}
+    }
+
+    return null;
   }
 
   /// ============================

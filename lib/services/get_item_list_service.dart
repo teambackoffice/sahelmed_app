@@ -17,9 +17,9 @@ class GetItemsService {
       throw Exception('Session expired. Please login again.');
     }
 
-    final uri = Uri.parse(
-      _url,
-    ).replace(queryParameters: {'is_sales_item': '1', 'disabled': '0'});
+    final uri = Uri.parse(_url).replace(
+      queryParameters: {'is_sales_item': '1', 'disabled': '0', 'limit': 'all'},
+    );
 
     final headers = {
       'Content-Type': 'application/json',
@@ -31,7 +31,9 @@ class GetItemsService {
     if (response.statusCode == 200) {
       return itemsResponseFromJson(response.body);
     } else {
-      throw Exception('Failed to load items | Status: ${response.statusCode}');
+      throw Exception(
+        'Failed to load items | Status: ${response.statusCode} | Body: ${response.body}',
+      );
     }
   }
 }

@@ -24,19 +24,19 @@ class Message {
   bool success;
   String message;
   List<Item> items;
-  int totalCount;
-  int returnedCount;
-  bool hasMore;
-  Pagination pagination;
+  int? totalCount;
+  int? returnedCount;
+  bool? hasMore;
+  Pagination? pagination;
 
   Message({
     required this.success,
     required this.message,
     required this.items,
-    required this.totalCount,
-    required this.returnedCount,
-    required this.hasMore,
-    required this.pagination,
+    this.totalCount,
+    this.returnedCount,
+    this.hasMore,
+    this.pagination,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
@@ -46,17 +46,19 @@ class Message {
     totalCount: json["total_count"],
     returnedCount: json["returned_count"],
     hasMore: json["has_more"],
-    pagination: Pagination.fromJson(json["pagination"]),
+    pagination: json["pagination"] != null
+        ? Pagination.fromJson(json["pagination"])
+        : null,
   );
 
   Map<String, dynamic> toJson() => {
     "success": success,
     "message": message,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
-    "total_count": totalCount,
-    "returned_count": returnedCount,
-    "has_more": hasMore,
-    "pagination": pagination.toJson(),
+    if (totalCount != null) "total_count": totalCount,
+    if (returnedCount != null) "returned_count": returnedCount,
+    if (hasMore != null) "has_more": hasMore,
+    if (pagination != null) "pagination": pagination!.toJson(),
   };
 }
 
@@ -64,10 +66,10 @@ class Item {
   String id;
   String itemCode;
   String itemName;
-  String description;
-  String itemGroup;
+  String? description;
+  String? itemGroup;
   dynamic brand;
-  String stockUom;
+  String? stockUom;
   bool isStockItem;
   bool isSalesItem;
   bool isPurchaseItem;
@@ -79,13 +81,13 @@ class Item {
   String? image;
   double weightPerUnit;
   dynamic weightUom;
-  String countryOfOrigin;
+  String? countryOfOrigin;
   dynamic customsTariffNumber;
   List<Price> prices;
   DateTime createdOn;
   DateTime lastModified;
-  String createdBy;
-  String modifiedBy;
+  String? createdBy;
+  String? modifiedBy;
 
   Item({
     required this.id,
@@ -116,18 +118,18 @@ class Item {
   });
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
-    id: json["id"],
-    itemCode: json["item_code"],
-    itemName: json["item_name"],
+    id: json["id"] ?? '',
+    itemCode: json["item_code"] ?? '',
+    itemName: json["item_name"] ?? '',
     description: json["description"],
     itemGroup: json["item_group"],
     brand: json["brand"],
     stockUom: json["stock_uom"],
-    isStockItem: json["is_stock_item"],
-    isSalesItem: json["is_sales_item"],
-    isPurchaseItem: json["is_purchase_item"],
-    isServiceItem: json["is_service_item"],
-    disabled: json["disabled"],
+    isStockItem: json["is_stock_item"] ?? false,
+    isSalesItem: json["is_sales_item"] ?? false,
+    isPurchaseItem: json["is_purchase_item"] ?? false,
+    isServiceItem: json["is_service_item"] ?? false,
+    disabled: json["disabled"] ?? false,
     standardRate: (json["standard_rate"] ?? 0).toDouble(),
     valuationRate: (json["valuation_rate"] ?? 0).toDouble(),
     lastPurchaseRate: (json["last_purchase_rate"] ?? 0).toDouble(),
@@ -136,7 +138,9 @@ class Item {
     weightUom: json["weight_uom"],
     countryOfOrigin: json["country_of_origin"],
     customsTariffNumber: json["customs_tariff_number"],
-    prices: List<Price>.from(json["prices"].map((x) => Price.fromJson(x))),
+    prices: json["prices"] != null
+        ? List<Price>.from(json["prices"].map((x) => Price.fromJson(x)))
+        : [],
     createdOn: DateTime.parse(json["created_on"]),
     lastModified: DateTime.parse(json["last_modified"]),
     createdBy: json["created_by"],
