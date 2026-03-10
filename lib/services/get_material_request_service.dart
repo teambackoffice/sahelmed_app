@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -33,6 +34,9 @@ class GetMachineRequestService {
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode == 200) {
+      print("========== GET MATERIAL REQUEST API ==========");
+      print("URL: $uri");
+      print("Response: $responseBody");
       final parsedData = getMaterialRequestModalClassFromJson(responseBody);
 
       return parsedData;

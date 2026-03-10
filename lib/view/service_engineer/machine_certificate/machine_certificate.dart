@@ -387,28 +387,25 @@ class CertificateCard extends StatelessWidget {
                     // Service Type Tag
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: _getServiceColor(
-                          certificate.contractType,
+                        color: _getStatusColor(
+                          certificate.status,
                         ).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _getServiceColor(
-                            certificate.contractType,
-                          ).withOpacity(0.3),
+                          color: _getStatusColor(certificate.status),
                           width: 1,
                         ),
                       ),
                       child: Text(
-                        _getContractTypeText(certificate.contractType),
+                        _getStatusText(certificate.status),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: _getServiceColor(certificate.contractType),
-                          letterSpacing: 0.5,
+                          color: _getStatusColor(certificate.status),
                         ),
                       ),
                     ),
@@ -452,33 +449,33 @@ class CertificateCard extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 // Status & Next Service
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(
-                        certificate.status,
-                      ).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _getStatusColor(certificate.status),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      _getStatusText(certificate.status),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: _getStatusColor(certificate.status),
-                      ),
-                    ),
-                  ),
-                ),
+                // Align(
+                //   alignment: Alignment.centerRight,
+                //   child: Container(
+                //     padding: const EdgeInsets.symmetric(
+                //       horizontal: 10,
+                //       vertical: 5,
+                //     ),
+                //     decoration: BoxDecoration(
+                //       color: _getStatusColor(
+                //         certificate.status,
+                //       ).withOpacity(0.1),
+                //       borderRadius: BorderRadius.circular(12),
+                //       border: Border.all(
+                //         color: _getStatusColor(certificate.status),
+                //         width: 1,
+                //       ),
+                //     ),
+                //     child: Text(
+                //       _getStatusText(certificate.status),
+                //       style: TextStyle(
+                //         fontSize: 11,
+                //         fontWeight: FontWeight.bold,
+                //         color: _getStatusColor(certificate.status),
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),

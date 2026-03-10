@@ -400,7 +400,7 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
               crossAxisCount: 2,
               crossAxisSpacing: 15,
               mainAxisSpacing: 15,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.0,
               children: [
                 _buildEnhancedMenuItem(
                   icon: Icons.description_outlined,
@@ -463,7 +463,7 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(20),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),

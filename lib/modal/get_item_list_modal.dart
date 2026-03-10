@@ -67,6 +67,8 @@ class Item {
   String itemCode;
   String itemName;
   String? description;
+  String? htmlDescription;
+  String? plainDescription;
   String? itemGroup;
   dynamic brand;
   String? stockUom;
@@ -94,6 +96,8 @@ class Item {
     required this.itemCode,
     required this.itemName,
     required this.description,
+    this.htmlDescription,
+    this.plainDescription,
     required this.itemGroup,
     required this.brand,
     required this.stockUom,
@@ -122,6 +126,8 @@ class Item {
     itemCode: json["item_code"] ?? '',
     itemName: json["item_name"] ?? '',
     description: json["description"],
+    htmlDescription: json["html_description"],
+    plainDescription: json["plain_description"],
     itemGroup: json["item_group"],
     brand: json["brand"],
     stockUom: json["stock_uom"],
@@ -152,6 +158,8 @@ class Item {
     "item_code": itemCode,
     "item_name": itemName,
     "description": description,
+    "html_description": htmlDescription,
+    "plain_description": plainDescription,
     "item_group": itemGroup,
     "brand": brand,
     "stock_uom": stockUom,

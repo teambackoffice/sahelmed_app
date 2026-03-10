@@ -88,15 +88,17 @@ class CustomerSearchDialogState extends State<CustomerSearchDialog> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Select Customer',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      'Select Customer',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
                   Material(
                     color: Colors.transparent,
                     child: IconButton(
@@ -178,7 +180,7 @@ class CustomerSearchDialogState extends State<CustomerSearchDialog> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No customers found',
+                            'No customers found ',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],

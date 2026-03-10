@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mime/mime.dart';
@@ -21,85 +22,93 @@ class CreateQuotationService {
     String? transactionDate,
     String? validTill,
     String? orderType,
+    String? customHtmlDescription,
   }) async {
-    // 🔐 AUTH DATA
-    final apiKey = await _storage.read(key: 'api_key');
-    final apiSecret = await _storage.read(key: 'api_secret');
-    final sessionId = await _storage.read(key: 'session_id');
+    try {
+      // 🔐 AUTH DATA
+      final apiKey = await _storage.read(key: 'api_key');
+      final apiSecret = await _storage.read(key: 'api_secret');
+      final sessionId = await _storage.read(key: 'session_id');
 
-    if (apiKey == null && apiSecret == null && sessionId == null) {
-      throw Exception('Session expired. Please login again.');
-    }
-
-    // 🔹 PREPARE ITEMS
-    List<Map<String, dynamic>> finalItems = [];
-
-    for (int i = 0; i < items.length; i++) {
-      final item = Map<String, dynamic>.from(items[i]);
-
-      // 📷 IMAGE HANDLING
-      if (item.containsKey('image_file') && item['image_file'] is File) {
-        final File imageFile = item['image_file'];
-        final String fileName = imageFile.path.split('/').last;
-
-        if (await imageFile.exists()) {
-          final bytes = await imageFile.readAsBytes();
-
-          final mimeType =
-              lookupMimeType(imageFile.path, headerBytes: bytes) ??
-              'image/jpeg';
-
-          final base64Image = base64Encode(bytes);
-          final dataUri = 'data:$mimeType;base64,$base64Image';
-
-          item['image_b64'] = dataUri;
-          item['image_filename'] = fileName;
-
-          item.remove('image');
-          item.remove('image_file');
-        }
+      if (apiKey == null && apiSecret == null && sessionId == null) {
+        throw Exception('Session expired. Please login again.');
       }
 
-      finalItems.add(item);
+      // 🔹 PREPARE ITEMS
+      List<Map<String, dynamic>> finalItems = [];
+
+      for (int i = 0; i < items.length; i++) {
+        final item = Map<String, dynamic>.from(items[i]);
+
+        // 📷 IMAGE HANDLING
+        if (item.containsKey('image_file') && item['image_file'] is File) {
+          final File imageFile = item['image_file'];
+          final String fileName = imageFile.path.split('/').last;
+
+          if (await imageFile.exists()) {
+            final bytes = await imageFile.readAsBytes();
+
+            final mimeType =
+                lookupMimeType(imageFile.path, headerBytes: bytes) ??
+                'image/jpeg';
+
+            final base64Image = base64Encode(bytes);
+            final dataUri = 'data:$mimeType;base64,$base64Image';
+
+            item['image_b64'] = dataUri;
+            item['image_filename'] = fileName;
+
+            item.remove('image');
+            item.remove('image_file');
+          }
+        }
+
+        finalItems.add(item);
+      }
+
+      // 🔐 HEADERS
+      final headers = <String, String>{'Content-Type': 'application/json'};
+
+      if (apiKey != null && apiSecret != null) {
+        headers['Authorization'] = 'token $apiKey:$apiSecret';
+      } else if (sessionId != null) {
+        headers['Authorization'] = 'token $sessionId';
+        headers['Cookie'] = 'sid=$sessionId';
+      }
+
+      // 🔹 BODY
+      final body = {
+        'quotation_to': quotationTo,
+        'party_name': partyName,
+        'items': finalItems,
+      };
+
+      if (transactionDate != null) {
+        body['transaction_date'] = transactionDate;
+      }
+      if (validTill != null) {
+        body['valid_till'] = validTill;
+      }
+      if (orderType != null) {
+        body['order_type'] = orderType;
+      }
+      if (customHtmlDescription != null) {
+        body['custom_html_description'] = customHtmlDescription;
+      }
+
+      final jsonBody = jsonEncode(body);
+
+      // 🚀 API CALL
+      final response = await http.post(
+        Uri.parse(_url),
+        headers: headers,
+        body: jsonBody,
+      );
+
+      return _handleResponse(response.statusCode, response.body);
+    } catch (e, stackTrace) {
+      rethrow;
     }
-
-    // 🔐 HEADERS
-    final headers = <String, String>{'Content-Type': 'application/json'};
-
-    if (apiKey != null && apiSecret != null) {
-      headers['Authorization'] = 'token $apiKey:$apiSecret';
-    } else if (sessionId != null) {
-      headers['Authorization'] = 'token $sessionId';
-      headers['Cookie'] = 'sid=$sessionId';
-    }
-
-    // 🔹 BODY
-    final body = {
-      'quotation_to': quotationTo,
-      'party_name': partyName,
-      'items': finalItems,
-    };
-
-    if (transactionDate != null) {
-      body['transaction_date'] = transactionDate;
-    }
-    if (validTill != null) {
-      body['valid_till'] = validTill;
-    }
-    if (orderType != null) {
-      body['order_type'] = orderType;
-    }
-
-    final jsonBody = jsonEncode(body);
-
-    // 🚀 API CALL
-    final response = await http.post(
-      Uri.parse(_url),
-      headers: headers,
-      body: jsonBody,
-    );
-
-    return _handleResponse(response.statusCode, response.body);
   }
 
   // ================= RESPONSE HANDLER =================

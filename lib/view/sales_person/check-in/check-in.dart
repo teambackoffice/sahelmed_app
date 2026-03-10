@@ -3,8 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:sahelmed_app/providers/employee_check_in_provider.dart';
-// TODO: Import your actual controller/service files if they are in separate files
-// import 'package:sahelmed_app/controllers/employee_checkin_controller.dart';
+import 'package:app_settings/app_settings.dart';
 
 class EmployeeCheckIn extends StatefulWidget {
   const EmployeeCheckIn({super.key});
@@ -90,19 +89,19 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw Exception('Location services are disabled');
+      throw _LocationException('location_off');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw Exception('Location permission denied');
+        throw _LocationException('permission_denied');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission permanently denied');
+      throw _LocationException('permission_permanent');
     }
 
     return await Geolocator.getCurrentPosition(
@@ -110,9 +109,233 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
     );
   }
 
+  // ── Location error dialogs ──────────────────────────────────────────────
+
+  void _showLocationOffDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon badge
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_off_rounded,
+                  color: Color(0xFFFF8C42),
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Location is Turned Off',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Your device location (GPS) is currently off.\nPlease turn it on to check in or check out.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // Open Settings button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    AppSettings.openAppSettings(type: AppSettingsType.location);
+                  },
+                  icon: const Icon(Icons.settings_rounded, size: 18),
+                  label: const Text(
+                    'Open Location Settings',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2575FC),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Cancel button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLocationPermissionDialog({required bool isPermanent}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEBEE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_disabled_rounded,
+                  color: Colors.redAccent,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isPermanent
+                    ? 'Location Permission Blocked'
+                    : 'Location Permission Denied',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isPermanent
+                    ? 'Location access has been permanently denied. Please go to App Settings and enable it to use check-in.'
+                    : 'Location permission is required to check in or out.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              if (isPermanent)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      AppSettings.openAppSettings(
+                        type: AppSettingsType.location,
+                      );
+                    },
+                    icon: const Icon(Icons.settings_rounded, size: 18),
+                    label: const Text(
+                      'Open App Settings',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   bool isCheckedIn = false;
   String? checkInTime;
   String? checkOutTime;
+
+  // Loading overlay state
+  bool _isProcessing = false;
+  String _loadingMessage = '';
 
   @override
   void dispose() {
@@ -144,12 +367,40 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
       confirmText: "Check In",
       isCheckIn: true,
       onConfirm: () async {
-        // Start Loading
-        setState(
-          () {},
-        ); // Triggers rebuild to show spinner in button if relying on _controller.isLoading
+        // Step 1: Show GPS loading
+        setState(() {
+          _isProcessing = true;
+          _loadingMessage = 'Getting your location...';
+        });
 
-        final position = await _getCurrentLocation();
+        Position position;
+        try {
+          position = await _getCurrentLocation();
+        } on _LocationException catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          if (e.code == 'location_off') {
+            _showLocationOffDialog();
+          } else if (e.code == 'permission_permanent') {
+            _showLocationPermissionDialog(isPermanent: true);
+          } else {
+            _showLocationPermissionDialog(isPermanent: false);
+          }
+          return;
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          _showMessage(
+            'Could not get location. Please try again.',
+            isError: true,
+          );
+          return;
+        }
+
+        // Step 2: Show API loading
+        if (mounted) {
+          setState(() => _loadingMessage = 'Submitting check-in...');
+        }
 
         final String currentLat = position.latitude.toString();
         final String currentLong = position.longitude.toString();
@@ -158,30 +409,29 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
         ).format(DateTime.now());
 
         await _controller.checkIn(
-          token: sessionId!, // from secure storage
-          employee: employeeId!, // from secure storage
+          token: sessionId!,
+          employee: employeeId!,
           time: currentTime,
           latitude: currentLat,
           longitude: currentLong,
         );
 
         if (!mounted) return;
+        setState(() => _isProcessing = false);
 
         if (_controller.errorMessage != null) {
           _showMessage(_controller.errorMessage!, isError: true);
         } else {
-          // Success: Update UI and persist state
           final formattedCheckInTime = DateFormat(
             'hh:mm a',
           ).format(DateTime.now());
 
           setState(() {
             checkInTime = formattedCheckInTime;
-            checkOutTime = null; // Reset checkout on new day
+            checkOutTime = null;
             isCheckedIn = true;
           });
 
-          // Persist check-in state to storage
           final currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
           await storage.write(key: 'is_checked_in', value: 'true');
           await storage.write(
@@ -210,9 +460,40 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
       confirmText: "Check Out",
       isCheckIn: false,
       onConfirm: () async {
-        setState(() {}); // Trigger loading state
+        // Step 1: Show GPS loading
+        setState(() {
+          _isProcessing = true;
+          _loadingMessage = 'Getting your location...';
+        });
 
-        final position = await _getCurrentLocation();
+        Position position;
+        try {
+          position = await _getCurrentLocation();
+        } on _LocationException catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          if (e.code == 'location_off') {
+            _showLocationOffDialog();
+          } else if (e.code == 'permission_permanent') {
+            _showLocationPermissionDialog(isPermanent: true);
+          } else {
+            _showLocationPermissionDialog(isPermanent: false);
+          }
+          return;
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          _showMessage(
+            'Could not get location. Please try again.',
+            isError: true,
+          );
+          return;
+        }
+
+        // Step 2: Show API loading
+        if (mounted) {
+          setState(() => _loadingMessage = 'Submitting check-out...');
+        }
 
         final String currentLat = position.latitude.toString();
         final String currentLong = position.longitude.toString();
@@ -221,19 +502,19 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
         ).format(DateTime.now());
 
         await _controller.checkOut(
-          token: sessionId!, // from secure storage
-          employee: employeeId!, // from secure storage
+          token: sessionId!,
+          employee: employeeId!,
           time: currentTime,
           latitude: currentLat,
           longitude: currentLong,
         );
 
         if (!mounted) return;
+        setState(() => _isProcessing = false);
 
         if (_controller.errorMessage != null) {
           _showMessage(_controller.errorMessage!, isError: true);
         } else {
-          // Success: Update UI and persist state
           final formattedCheckOutTime = DateFormat(
             'hh:mm a',
           ).format(DateTime.now());
@@ -243,7 +524,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
             isCheckedIn = false;
           });
 
-          // Persist check-out state to storage
           await storage.write(key: 'is_checked_in', value: 'false');
           await storage.write(
             key: 'check_out_time',
@@ -373,38 +653,99 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to controller changes for isLoading updates
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, child) {
-        return Scaffold(
-          backgroundColor: const Color(0xFFF6F8FB),
-          body: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Transform.translate(
-                  offset: const Offset(0, -40),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: [
-                        _buildStatusCard(),
-                        const SizedBox(height: 25),
-                        _buildLocationCard(),
-                        const SizedBox(height: 25),
-                        if (checkInTime != null) _buildTimeline(),
-                        const SizedBox(height: 30),
-                        _buildSliderButton(),
-                      ],
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: const Color(0xFFF6F8FB),
+              body: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    Transform.translate(
+                      offset: const Offset(0, -40),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _buildStatusCard(),
+                            const SizedBox(height: 25),
+                            _buildLocationCard(),
+                            const SizedBox(height: 25),
+                            if (checkInTime != null) _buildTimeline(),
+                            const SizedBox(height: 30),
+                            _buildSliderButton(),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            // Full-screen loading overlay
+            if (_isProcessing) _buildLoadingOverlay(),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.55),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Animated spinner with colored ring
+              SizedBox(
+                height: 64,
+                width: 64,
+                child: CircularProgressIndicator(
+                  strokeWidth: 5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isCheckedIn
+                        ? const Color(0xFFFF8C42)
+                        : const Color(0xFF2575FC),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _loadingMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please wait...',
+                style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -714,8 +1055,7 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
   }
 
   Widget _buildSliderButton() {
-    // Check loading status from controller
-    final bool isLoading = _controller.isLoading;
+    final bool isLoading = _isProcessing || _controller.isLoading;
 
     return SizedBox(
       width: double.infinity,
@@ -771,4 +1111,10 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
       ),
     );
   }
+}
+
+// ── Private exception type for location errors ──────────────────────────────
+class _LocationException implements Exception {
+  final String code;
+  const _LocationException(this.code);
 }

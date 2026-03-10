@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/providers/get_quotation_provider.dart';
-import 'package:sahelmed_app/services/get_quotation_service.dart';
 import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/create_quotation.dart';
 import 'package:sahelmed_app/modal/get_quotation_modal.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
 class QuotationPage extends StatefulWidget {
   const QuotationPage({super.key});
@@ -110,9 +109,7 @@ class _QuotationPageState extends State<QuotationPage> {
         body: Consumer<GetQuotationController>(
           builder: (context, controller, child) {
             if (controller.isLoading && controller.quotations.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF2563EB)),
-              );
+              return _buildShimmerList();
             }
 
             if (controller.errorMessage != null &&
@@ -200,14 +197,7 @@ class _QuotationPageState extends State<QuotationPage> {
                     const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   if (index == controller.quotations.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF2563EB),
-                        ),
-                      ),
-                    );
+                    return _buildQuotationShimmerCard();
                   }
 
                   final quotation = controller.quotations[index];
@@ -469,6 +459,200 @@ class _QuotationPageState extends State<QuotationPage> {
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+
+  // ─── Shimmer helpers ───────────────────────────────────────────────────────
+
+  Widget _buildShimmerList() {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (_, __) => _buildQuotationShimmerCard(),
+    );
+  }
+
+  Widget _buildQuotationShimmerCard() {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE8ECF0),
+      highlightColor: const Color(0xFFF5F7FA),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header: avatar | name+id | status chip ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // CircleAvatar placeholder
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Customer name line
+                        Container(
+                          height: 15,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // ID line
+                        Container(
+                          height: 11,
+                          width: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Status chip placeholder
+                  Container(
+                    width: 68,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Divider ──
+            Container(height: 1, color: Colors.white),
+
+            // ── Body: detail rows ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _shimmerDetailRow(width: 180),
+                  const SizedBox(height: 10),
+                  _shimmerDetailRow(width: 160),
+                  const SizedBox(height: 10),
+                  _shimmerDetailRow(width: 200),
+                  const SizedBox(height: 10),
+                  _shimmerDetailRow(width: 140),
+                ],
+              ),
+            ),
+
+            // ── Footer: grand total | order type chip ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 11,
+                        width: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 18,
+                        width: 110,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Order type chip placeholder
+                  Container(
+                    width: 64,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shimmerDetailRow({required double width}) {
+    return Row(
+      children: [
+        // Icon placeholder
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Label placeholder
+        Container(
+          height: 12,
+          width: 50,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+        const SizedBox(width: 4),
+        // Value placeholder
+        Container(
+          height: 12,
+          width: width,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      ],
     );
   }
 }

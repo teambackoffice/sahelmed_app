@@ -1,10 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sahelmed_app/modal/get_customer_modal.dart';
-import 'package:sahelmed_app/modal/get_item_list_modal.dart';
 import 'package:sahelmed_app/modal/get_leads_modal.dart';
 import 'package:sahelmed_app/providers/create_quotation_provider.dart';
 import 'package:sahelmed_app/providers/get_customer_provider.dart';
@@ -14,20 +14,24 @@ import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/custom
 import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/item_list_dialog.dart';
 import 'package:sahelmed_app/view/sales_person/quotation/create_quotation/lead_list_dialog.dart';
 
+// ─── Quotation Item ───────────────────────────────────────────────────────────
 class QuotationItem {
   String? id;
   String itemCode;
   String name;
-  String description;
   double quantity;
   double rate;
   String uom;
   File? image;
   String? imageUrl;
 
-  // Controllers
-  late final TextEditingController nameController;
+  // Description: one text field + multiple images (local files) + network URLs from API
   late final TextEditingController descriptionController;
+  List<File> descriptionImages;
+  List<String> descriptionImageUrls; // Network image paths/URLs from item API
+
+  // Other controllers
+  late final TextEditingController nameController;
   late final TextEditingController quantityController;
   late final TextEditingController rateController;
 
@@ -59,13 +63,16 @@ class QuotationItem {
     this.id,
     this.itemCode = '',
     this.name = '',
-    this.description = '',
+    String description = '',
     this.quantity = 1.0,
     this.rate = 0.0,
     this.uom = 'Nos',
     this.image,
     this.imageUrl,
-  }) {
+    List<File>? descriptionImages,
+    List<String>? descriptionImageUrls,
+  }) : descriptionImages = descriptionImages ?? [],
+       descriptionImageUrls = descriptionImageUrls ?? [] {
     nameController = TextEditingController(text: name);
     descriptionController = TextEditingController(text: description);
     quantityController = TextEditingController(
@@ -78,6 +85,32 @@ class QuotationItem {
 
   double get amount => quantity * rate;
 
+  /// Serializes description text + images (network URLs + local files) into HTML for the API.
+  String get descriptionHtml {
+    final buffer = StringBuffer();
+    final text = descriptionController.text.trim();
+    if (text.isNotEmpty) {
+      buffer.write('<p>${text.replaceAll('\n', '<br>')}</p>');
+    }
+    // Network images (from the item's html_description)
+    for (final url in descriptionImageUrls) {
+      buffer.write(
+        '<img src="$url" '
+        'style="max-width:100%;border-radius:8px;margin:8px 0;" />',
+      );
+    }
+    // Local images picked by the user
+    for (final img in descriptionImages) {
+      final bytes = img.readAsBytesSync();
+      final b64 = base64Encode(bytes);
+      buffer.write(
+        '<img src="data:image/jpeg;base64,$b64" '
+        'style="max-width:100%;border-radius:8px;margin:8px 0;" />',
+      );
+    }
+    return buffer.toString();
+  }
+
   void dispose() {
     nameController.dispose();
     descriptionController.dispose();
@@ -89,7 +122,7 @@ class QuotationItem {
     return {
       'item_code': itemCode,
       'item_name': name,
-      'description': description,
+      'custom_html_description': descriptionHtml,
       'qty': quantity,
       'rate': rate,
       'uom': uom,
@@ -388,6 +421,109 @@ class _CreateQuotationState extends State<CreateQuotation> {
     );
   }
 
+  /// Extracts image src paths from an HTML string (e.g. html_description from the API).
+  List<String> _extractImageUrlsFromHtml(String? html) {
+    if (html == null || html.isEmpty) return [];
+    final urls = <String>[];
+    // Match src attribute values: src="..." or src='...'
+    final regExp = RegExp("src=[\"'](.*?)[\"']", caseSensitive: false);
+    for (final match in regExp.allMatches(html)) {
+      final src = match.group(1) ?? '';
+      if (src.isNotEmpty && !src.startsWith('data:')) {
+        urls.add(src);
+      }
+    }
+    return urls;
+  }
+
+  /// Converts Quill-editor HTML (html_description) to a clean, readable plain text string.
+  /// Handles: paragraphs, ordered list items, unordered lists, img removal, entity decoding.
+  String _htmlToPlainText(String? html) {
+    if (html == null || html.isEmpty) return '';
+
+    String text = html;
+
+    // 1. Remove ql-ui spans entirely (they are empty UI markers in Quill editor)
+    // Using a non-raw string so we can mix quote types safely
+    text = text.replaceAll(
+      RegExp(
+        "(<span[^>]*class=[^>]*ql-ui[^>]*>.*?</span>)",
+        caseSensitive: false,
+        dotAll: true,
+      ),
+      "",
+    );
+
+    // 2. Convert <ol> ordered lists to numbered lines
+    final olRegExp = RegExp(
+      "<ol[^>]*>(.*?)</ol>",
+      caseSensitive: false,
+      dotAll: true,
+    );
+    text = text.replaceAllMapped(olRegExp, (match) {
+      final olContent = match.group(1) ?? '';
+      final liRegExp = RegExp(
+        "<li[^>]*>(.*?)</li>",
+        caseSensitive: false,
+        dotAll: true,
+      );
+      int counter = 0;
+      final result = olContent.replaceAllMapped(liRegExp, (liMatch) {
+        counter++;
+        final liText = liMatch.group(1) ?? '';
+        final cleaned = liText.replaceAll(RegExp("<[^>]+>"), "").trim();
+        return '$counter. $cleaned';
+      });
+      return '\n$result';
+    });
+
+    // 3. Convert <ul> unordered lists to bullet lines
+    final ulRegExp = RegExp(
+      "<ul[^>]*>(.*?)</ul>",
+      caseSensitive: false,
+      dotAll: true,
+    );
+    text = text.replaceAllMapped(ulRegExp, (match) {
+      final ulContent = match.group(1) ?? '';
+      final liRegExp = RegExp(
+        "<li[^>]*>(.*?)</li>",
+        caseSensitive: false,
+        dotAll: true,
+      );
+      final result = ulContent.replaceAllMapped(liRegExp, (liMatch) {
+        final liText = liMatch.group(1) ?? '';
+        final cleaned = liText.replaceAll(RegExp("<[^>]+>"), "").trim();
+        return '• $cleaned';
+      });
+      return '\n$result';
+    });
+
+    // 4. Convert <p> and <br> to newlines
+    text = text.replaceAll(RegExp("<p[^>]*>", caseSensitive: false), "");
+    text = text.replaceAll(RegExp("</p>", caseSensitive: false), "\n");
+    text = text.replaceAll(RegExp("<br\\s*/?>", caseSensitive: false), "\n");
+
+    // 5. Remove <img> tags (images are shown separately in the UI)
+    text = text.replaceAll(RegExp("<img[^>]*>", caseSensitive: false), "");
+
+    // 6. Strip all remaining HTML tags
+    text = text.replaceAll(RegExp("<[^>]+>"), "");
+
+    // 7. Decode common HTML entities
+    text = text
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll("&quot;", '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&nbsp;', ' ');
+
+    // 8. Collapse excessive blank lines (3+ in a row -> 1 blank line)
+    text = text.replaceAll(RegExp("\n{3,}"), "\n\n");
+
+    return text.trim();
+  }
+
   void _showItemSearchDialog(int index) {
     final itemsList = context.read<ItemsProvider>().items;
 
@@ -402,6 +538,21 @@ class _CreateQuotationState extends State<CreateQuotation> {
             items[index].name = item.itemName;
             items[index].nameController.text = item.itemName;
             items[index].imageUrl = item.image;
+
+            // ── Populate description from the item ──────────────────────────
+            // Parse html_description into readable plain text (handles lists, paragraphs, etc)
+            // Fall back to plain_description only if html_description is absent
+            final parsedText =
+                item.htmlDescription != null && item.htmlDescription!.isNotEmpty
+                ? _htmlToPlainText(item.htmlDescription)
+                : (item.plainDescription ?? '');
+            items[index].descriptionController.text = parsedText;
+
+            // Extract image URLs embedded in html_description
+            final imageUrls = _extractImageUrlsFromHtml(item.htmlDescription);
+            items[index].descriptionImageUrls = imageUrls;
+            // Clear any previously picked local description images
+            items[index].descriptionImages.clear();
 
             double rate = 0.0;
             if (item.prices.isNotEmpty) {
@@ -1159,63 +1310,8 @@ class _CreateQuotationState extends State<CreateQuotation> {
 
             const SizedBox(height: 16),
 
-            // Description
-            TextFormField(
-              controller: item.descriptionController,
-              onChanged: (value) {
-                setState(() => item.description = value);
-              },
-              maxLines: 3,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF1F2937),
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Description',
-                labelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF6B7280),
-                ),
-                hintText: 'Enter product description',
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontWeight: FontWeight.w400,
-                ),
-                alignLabelWithHint: true,
-                prefixIcon: Container(
-                  margin: const EdgeInsets.all(12),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.description_outlined,
-                    color: Color(0xFF2563EB),
-                    size: 20,
-                  ),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF6366F1),
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
+            // Rich Description Editor
+            _buildDescriptionField(index),
 
             const SizedBox(height: 16),
 
@@ -1488,6 +1584,377 @@ class _CreateQuotationState extends State<CreateQuotation> {
         ),
       ),
     );
+  }
+
+  // ─── Description field: single text area + multiple images ──────────────────
+
+  Widget _buildDescriptionField(int itemIndex) {
+    final item = items[itemIndex];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Label ──────────────────────────────────────────────────────────────
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.description_outlined,
+                color: Color(0xFF2563EB),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Description',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF6B7280),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // ── Text area ──────────────────────────────────────────────────────────
+        TextFormField(
+          controller: item.descriptionController,
+          maxLines: 4,
+          minLines: 3,
+          keyboardType: TextInputType.multiline,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF1F2937),
+            fontWeight: FontWeight.w400,
+            height: 1.6,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Enter product description…',
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            alignLabelWithHint: true,
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+            ),
+            contentPadding: const EdgeInsets.all(14),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // ── Image thumbnails + Add chip ────────────────────────────────────────
+        // Combine: network URLs (from API) first, then local picked files, then "Add Photo".
+        Builder(
+          builder: (context) {
+            final urlCount = item.descriptionImageUrls.length;
+            final fileCount = item.descriptionImages.length;
+            final totalCount = urlCount + fileCount + 1; // +1 for "Add Photo"
+
+            return SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                itemCount: totalCount,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  // ── "Add Photo" button (last slot) ────────────────────────
+                  if (i == urlCount + fileCount) {
+                    return GestureDetector(
+                      onTap: () => _pickDescriptionImage(itemIndex),
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F4FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF6366F1).withOpacity(0.35),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add_photo_alternate_rounded,
+                                size: 20,
+                                color: Color(0xFF6366F1),
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              'Add Photo',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6366F1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // ── Network image (from API html_description) ──────────────
+                  if (i < urlCount) {
+                    final rawUrl = item.descriptionImageUrls[i];
+                    // Build full URL: paths like "/files/..." need the base URL prepended
+                    final fullUrl = rawUrl.startsWith('http')
+                        ? rawUrl
+                        : 'https://uat-alsahel.tbo365.cloud$rawUrl';
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            fullUrl,
+                            width: 90,
+                            height: 90,
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, _) => Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE5E7EB),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                color: Color(0xFF9CA3AF),
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Small "from item" badge
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB).withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Item',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                items[itemIndex].descriptionImageUrls.removeAt(
+                                  i,
+                                );
+                              });
+                            },
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  // ── Local file image (picked by user) ──────────────────────
+                  final fileIdx = i - urlCount;
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          item.descriptionImages[fileIdx],
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              items[itemIndex].descriptionImages.removeAt(
+                                fileIdx,
+                              );
+                            });
+                          },
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickDescriptionImage(int itemIndex) async {
+    try {
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Add Image to Description',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _ImagePickerTile(
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Take Photo',
+                  subtitle: 'Capture using camera',
+                  color: const Color(0xFF6366F1),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                const SizedBox(height: 12),
+                _ImagePickerTile(
+                  icon: Icons.photo_library_rounded,
+                  title: 'Choose from Gallery',
+                  subtitle: 'Select from your photos',
+                  color: const Color(0xFF3B82F6),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    backgroundColor: const Color(0xFFF3F4F6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source != null) {
+        final XFile? picked = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 80,
+        );
+        if (picked != null) {
+          setState(() {
+            items[itemIndex].descriptionImages.add(File(picked.path));
+          });
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+    }
   }
 
   Widget _buildImagePlaceholder() {

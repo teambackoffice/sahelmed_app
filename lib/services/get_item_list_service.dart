@@ -29,6 +29,8 @@ class GetItemsService {
     final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+
       return itemsResponseFromJson(response.body);
     } else {
       throw Exception(

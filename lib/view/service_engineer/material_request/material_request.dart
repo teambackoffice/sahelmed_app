@@ -38,7 +38,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
       case 'draft':
         return const Color(0xFFFF9800);
       case 'approved':
-      case 'submitted':
+      case 'issued':
         return const Color(0xFF4CAF50);
       case 'rejected':
       case 'cancelled':
@@ -57,7 +57,7 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
       case 'draft':
         return Icons.pending_outlined;
       case 'approved':
-      case 'submitted':
+      case 'issued':
         return Icons.check_circle_outline;
       case 'rejected':
       case 'cancelled':

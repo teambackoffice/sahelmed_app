@@ -543,7 +543,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
             children: [
               // Icon Container
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(14),
