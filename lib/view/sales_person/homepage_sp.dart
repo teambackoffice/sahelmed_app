@@ -40,7 +40,7 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
       listen: false,
     );
 
-    await showDialog(
+    final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
@@ -181,9 +181,7 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
                         SizedBox(
                           width: double.infinity,
                           child: TextButton(
-                            onPressed: controller.isLoading
-                                ? null
-                                : () => Navigator.pop(context, false),
+                            onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -214,19 +212,17 @@ class _SalesPersonHomepageState extends State<SalesPersonHomepage> {
       ),
     );
 
-    // Check if logout was successful
-    final success =
-        logoutController.isLoading == false &&
-        logoutController.errorMessage == null;
-
-    if (success && context.mounted) {
+    // Navigate only if logout was actually confirmed and succeeded
+    if (result == true && context.mounted) {
       // Navigate to login screen
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
-    } else if (logoutController.errorMessage != null && context.mounted) {
+    } else if (result == false &&
+        logoutController.errorMessage != null &&
+        context.mounted) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
