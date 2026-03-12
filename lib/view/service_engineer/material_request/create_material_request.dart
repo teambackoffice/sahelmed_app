@@ -313,24 +313,71 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
   Future<void> _submitRequest() async {
     if (_formKey.currentState!.validate() && items.isNotEmpty) {
       // Show loading dialog
-      showDialog(
+      showGeneralDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Creating Material Request...'),
-                ],
+        barrierColor: Colors.black.withOpacity(0.5),
+        transitionDuration: const Duration(milliseconds: 300),
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 48),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 32,
+                  horizontal: 24,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF059669),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Creating Request...',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Please wait a moment',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
 
       try {
@@ -344,94 +391,36 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
               items: items,
             );
 
-        // Close loading dialog
         if (mounted) Navigator.pop(context);
 
         final provider = context.read<CreateMaterialRequestProvider>();
 
         if (provider.errorMessage == null) {
-          // ✅ SUCCESS - Show success dialog
           if (mounted) {
-            await showDialog(
+            await _showResultDialog(
               context: context,
-              builder: (context) => AlertDialog(
-                icon: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 48,
-                ),
-                title: const Text('Success'),
-                content: const Text('Material request created successfully!'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
+              isSuccess: true,
+              message: 'Material request has been\ncreated successfully.',
             );
-
-            // ✅ CRITICAL: Return true to indicate successful creation
-            Navigator.pop(
-              context,
-              true,
-            ); // <-- Changed from ..pop()..pop() to pop(context, true)
+            if (mounted) Navigator.pop(context, true);
           }
         } else {
-          // ❌ ERROR - Show error dialog
           if (mounted) {
-            showDialog(
+            _showResultDialog(
               context: context,
-              builder: (context) => AlertDialog(
-                icon: const Icon(
-                  Icons.error_outline,
-                  color: Colors.red,
-                  size: 48,
-                ),
-                title: const Text('Error'),
-                content: Text(
-                  provider.errorMessage ?? 'Unknown error occurred',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
+              isSuccess: false,
+              message: provider.errorMessage ?? 'Unknown error occurred',
             );
-
-            // ❌ CRITICAL: Do NOT pop the create screen - stay to allow retry
-            // Removed Navigator.pop() here
           }
         }
       } catch (e) {
-        // Close loading dialog
         if (mounted) Navigator.pop(context);
-
-        // ❌ ERROR - Show error
         if (mounted) {
-          showDialog(
+          _showResultDialog(
             context: context,
-            builder: (context) => AlertDialog(
-              icon: const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 48,
-              ),
-              title: const Text('Error'),
-              content: Text('Failed to create material request: $e'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
+            isSuccess: false,
+            message: 'Failed to create material request:\n$e',
           );
-
-          // ❌ CRITICAL: Do NOT pop the create screen - stay to allow retry
-          // No Navigator.pop() here
         }
       }
     } else if (items.isEmpty) {
@@ -452,6 +441,142 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
         ),
       );
     }
+  }
+
+  Future<void> _showResultDialog({
+    required BuildContext context,
+    required bool isSuccess,
+    required String message,
+  }) {
+    return showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withOpacity(0.5),
+      transitionDuration: const Duration(milliseconds: 400),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+        return ScaleTransition(
+          scale: curved,
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      pageBuilder: (context, animation, secondaryAnimation) {
+        final color = isSuccess
+            ? const Color(0xFF059669)
+            : const Color(0xFFDC2626);
+        final lightColor = isSuccess
+            ? const Color(0xFF34D399)
+            : const Color(0xFFF87171);
+        final icon = isSuccess ? Icons.check_rounded : Icons.close_rounded;
+        final title = isSuccess ? 'Request Created!' : 'Something Went Wrong';
+        final buttonLabel = isSuccess ? 'Done' : 'Try Again';
+
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [lightColor, color],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.35),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 40),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade500,
+                        height: 1.6,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    Divider(color: Colors.grey.shade100, height: 1),
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          backgroundColor: color,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          buttonLabel,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _formatDate(DateTime date) {
@@ -899,17 +1024,17 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      TextButton.icon(
-                        onPressed: _showAddItemDialog,
-                        icon: const Icon(
-                          Icons.add_circle,
-                          color: AppColors.darkNavy,
-                        ),
-                        label: const Text(
-                          'Add Item',
-                          style: TextStyle(color: AppColors.darkNavy),
-                        ),
-                      ),
+                      // TextButton.icon(
+                      //   onPressed: _showAddItemDialog,
+                      //   icon: const Icon(
+                      //     Icons.add_circle,
+                      //     color: AppColors.darkNavy,
+                      //   ),
+                      //   label: const Text(
+                      //     'Add Item',
+                      //     style: TextStyle(color: AppColors.darkNavy),
+                      //   ),
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 8),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:sahelmed_app/core/app_colors.dart';
 import 'package:sahelmed_app/modal/get_material_request_modal.dart';
 import 'package:sahelmed_app/providers/get_material_request_provider.dart';
+import 'package:shimmer/shimmer.dart';
 import 'material_request_detail.dart';
 
 class MaterialRequestList extends StatefulWidget {
@@ -109,7 +110,11 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
           builder: (context, controller, child) {
             // Loading state
             if (controller.isLoading && controller.requests.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                itemCount: 4,
+                itemBuilder: (context, index) => _buildShimmerCard(index),
+              );
             }
 
             // Error state
@@ -464,6 +469,214 @@ class _MaterialRequestListState extends State<MaterialRequestList> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShimmerCard(int index) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 200 + index * 80),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, opacity, child) =>
+          Opacity(opacity: opacity, child: child),
+      child: Shimmer.fromColors(
+        baseColor: const Color(0xFFE8ECF4),
+        highlightColor: const Color(0xFFF8FAFF),
+        period: const Duration(milliseconds: 1400),
+        child: Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── HEADER ROW ──────────────────────────────────────
+                  Row(
+                    children: [
+                      // Icon box — 44×44 (padding 10 + icon 24)
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Name + type column
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _ShimmerBox(height: 16),
+                            const SizedBox(height: 6),
+                            _ShimmerBox(height: 13, widthFactor: 0.6),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Status badge
+                      Container(
+                        height: 28,
+                        width: 82,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  _ShimmerBox(height: 14, widthFactor: 0.75),
+                  const SizedBox(height: 16),
+
+                  Container(height: 1, color: Colors.white),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _ShimmerBox(height: 11),
+                                  const SizedBox(height: 4),
+                                  _ShimmerBox(height: 12),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _ShimmerBox(height: 11),
+                                  const SizedBox(height: 4),
+                                  _ShimmerBox(height: 12),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ShimmerBox(height: 11, widthFactor: 0.55),
+                              const SizedBox(height: 4),
+                              _ShimmerBox(height: 13),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _ShimmerBox(height: 12, widthFactor: 0.5),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _ShimmerBox({required double height, double widthFactor = 1.0}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: height,
+          width: constraints.maxWidth * widthFactor,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+        );
+      },
     );
   }
 

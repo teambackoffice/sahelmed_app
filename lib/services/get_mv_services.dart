@@ -17,6 +17,7 @@ class GetMaintenanceVisitService {
 
     final headers = {
       if (sessionId != null) 'Cookie': 'sid=$sessionId',
+      'Authorization': 'token $sessionId',
       'Content-Type': 'application/json',
     };
 
@@ -25,8 +26,18 @@ class GetMaintenanceVisitService {
     final request = http.Request('GET', uri);
     request.headers.addAll(headers);
 
+    print("📡 REQUEST URL: $uri");
+    print("📨 REQUEST HEADERS: $headers");
+
     final response = await request.send();
+
+    print("📊 RESPONSE STATUS: ${response.statusCode}");
+    print("📊 RESPONSE HEADERS: ${response.headers}");
+
     final responseBody = await response.stream.bytesToString();
+
+    print("📦 RESPONSE BODY:");
+    print(responseBody);
 
     if (response.statusCode == 200) {
       return getMaintenenceVisitModalClassFromJson(responseBody);

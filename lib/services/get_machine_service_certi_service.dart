@@ -35,7 +35,6 @@ class GetMachineServiceService {
       if (response.statusCode == 200) {
         return getMachineServiceModalClassFromJson(responseBody);
       } else {
-        // 🧠 Try to extract server message if exists
         final decoded = jsonDecode(responseBody);
 
         throw Exception(
@@ -43,8 +42,6 @@ class GetMachineServiceService {
         );
       }
     } catch (e, stackTrace) {
-      // 🚨 Catch ANY error (network, parsing, permission, etc.)
-
       rethrow;
     }
   }

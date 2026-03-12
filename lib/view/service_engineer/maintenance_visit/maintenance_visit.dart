@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sahelmed_app/modal/get_mv_modal.dart';
 import 'package:sahelmed_app/providers/get_mv_provider.dart';
 import 'package:sahelmed_app/view/service_engineer/maintenance_visit/visit_detail.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MaintenanceVisit extends StatefulWidget {
   const MaintenanceVisit({super.key});
@@ -143,8 +144,14 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
                 ),
               ),
               if (controller.isLoading)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildShimmerCard(),
+                      childCount: 5,
+                    ),
+                  ),
                 )
               else if (controller.errorMessage != null)
                 SliverFillRemaining(child: _buildErrorState(controller))
@@ -487,6 +494,156 @@ class _MaintenanceVisitState extends State<MaintenanceVisit> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey.shade200,
+        highlightColor: Colors.grey.shade100,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: const Border(
+              left: BorderSide(color: Color(0xFF203A43), width: 5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Visit ID placeholder
+              Container(
+                height: 18,
+                width: 160,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Customer name row
+              Row(
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 14,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Address row
+              Row(
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 13,
+                    width: 230,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Equipment row
+              Row(
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 13,
+                    width: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Bottom info strip
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FD),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        height: 13,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      height: 24,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
