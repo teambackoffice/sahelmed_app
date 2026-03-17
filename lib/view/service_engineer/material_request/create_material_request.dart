@@ -1193,25 +1193,25 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
                                   ),
                                 ),
                               ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.edit_outlined,
-                                      color: Colors.blue,
-                                    ),
-                                    onPressed: () => _editItem(index),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.remove_circle_outline,
-                                      color: Colors.redAccent,
-                                    ),
-                                    onPressed: () => _removeItem(index),
-                                  ),
-                                ],
-                              ),
+                              // trailing: Row(
+                              //   mainAxisSize: MainAxisSize.min,
+                              //   children: [
+                              //     IconButton(
+                              //       icon: const Icon(
+                              //         Icons.edit_outlined,
+                              //         color: Colors.blue,
+                              //       ),
+                              //       onPressed: () => _editItem(index),
+                              //     ),
+                              //     IconButton(
+                              //       icon: const Icon(
+                              //         Icons.remove_circle_outline,
+                              //         color: Colors.redAccent,
+                              //       ),
+                              //       onPressed: () => _removeItem(index),
+                              //     ),
+                              //   ],
+                              // ),
                             ),
                           ),
                         );
