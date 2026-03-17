@@ -970,7 +970,7 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
               _buildTimelineItem(
                 time: checkInTime ?? "--:--",
                 title: "Check In",
-                subtitle: "On Time",
+
                 color: const Color(0xFF00BFA6),
                 isFirst: true,
                 isLast: checkOutTime == null,
@@ -979,7 +979,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
                 _buildTimelineItem(
                   time: checkOutTime!,
                   title: "Check Out",
-                  subtitle: "Work day completed",
                   color: const Color(0xFFFF8C42),
                   isFirst: false,
                   isLast: true,
@@ -994,7 +993,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
   Widget _buildTimelineItem({
     required String time,
     required String title,
-    required String subtitle,
     required Color color,
     required bool isFirst,
     required bool isLast,
@@ -1042,10 +1040,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
-              ),
               const SizedBox(height: 20),
             ],
           ),
