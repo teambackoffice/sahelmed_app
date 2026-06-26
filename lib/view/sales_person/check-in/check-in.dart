@@ -18,7 +18,7 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
   FlutterSecureStorage storage = FlutterSecureStorage();
   String? sessionId;
   String? employeeId;
-  String? full_Name;
+  String? fullName;
 
   @override
   void initState() {
@@ -29,10 +29,10 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
 
   Future<void> _loadFullName() async {
     try {
-      final fullName = await storage.read(key: 'full_name');
+      final savedFullName = await storage.read(key: 'full_name');
       if (mounted) {
         setState(() {
-          this.full_Name = fullName;
+          fullName = savedFullName;
         });
       }
     } catch (e) {
@@ -46,7 +46,6 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
     try {
       final sid = await storage.read(key: 'session_id');
       final empId = await storage.read(key: 'employee_name');
-      final fullName = await storage.read(key: 'full_name');
 
       // Load persisted check-in state
       final savedIsCheckedIn = await storage.read(key: 'is_checked_in');
@@ -105,7 +104,9 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
     }
 
     return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
     );
   }
 
@@ -821,7 +822,7 @@ class _EmployeeCheckInState extends State<EmployeeCheckIn> {
                 ),
               ),
               Text(
-                (full_Name ?? '')
+                (fullName ?? '')
                     .split(' ')
                     .where((e) => e.isNotEmpty)
                     .map((e) => e[0].toUpperCase() + e.substring(1))
