@@ -7,6 +7,7 @@ import 'package:sahelmed_app/providers/get_msc_count_provider.dart';
 import 'package:sahelmed_app/providers/logout_provider.dart';
 import 'package:sahelmed_app/providers/get_mv_count_provider.dart';
 import 'package:sahelmed_app/view/login_page.dart';
+import 'package:sahelmed_app/view/sales_person/check-in/check-in.dart';
 import 'package:sahelmed_app/view/service_engineer/machine_certificate/machine_certificate.dart';
 import 'package:sahelmed_app/view/service_engineer/maintenance_visit/maintenance_visit.dart';
 import 'package:sahelmed_app/view/service_engineer/material_request/material_request.dart';
@@ -497,6 +498,21 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                               );
                             },
                           ),
+                          _buildEnhancedMenuItem(
+                            icon: Icons.access_time,
+                            title: 'Check In / Check Out',
+                            subtitle: '',
+                            color: Colors.orange,
+                            showCount: false,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EmployeeCheckIn(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       );
                     },
@@ -519,6 +535,7 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
     int? count,
     bool isLoading = false,
     bool hasError = false,
+    bool showCount = true,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -567,70 +584,78 @@ class _ServiceEngineerHomepageState extends State<ServiceEngineerHomepage> {
                 ),
               ),
 
-              const SizedBox(height: 2),
+              if (showCount) ...[
+                const SizedBox(height: 2),
 
-              // Count Section with Loading/Error States
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF475569), Color(0xFF334155)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF475569).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
+                // Count Section with Loading/Error States
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF475569), Color(0xFF334155)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: isLoading
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: List.generate(3, (index) {
-                            return Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 1.5),
-                              child: TweenAnimationBuilder(
-                                tween: Tween<double>(begin: 0.0, end: 1.0),
-                                duration: Duration(milliseconds: 600),
-                                builder: (context, double value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(
-                                      0,
-                                      -4 * (value > 0.5 ? 1 - value : value),
-                                    ),
-                                    child: Container(
-                                      width: 4,
-                                      height: 4,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF475569).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: isLoading
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(3, (index) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 1.5),
+                                child: TweenAnimationBuilder(
+                                  tween: Tween<double>(begin: 0.0, end: 1.0),
+                                  duration: Duration(milliseconds: 600),
+                                  builder: (context, double value, child) {
+                                    return Transform.translate(
+                                      offset: Offset(
+                                        0,
+                                        -4 * (value > 0.5 ? 1 - value : value),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          }),
-                        )
-                      : hasError
-                      ? Icon(Icons.error_outline, color: Colors.white, size: 20)
-                      : Text(
-                          (count ?? 0) > 99 ? '99+' : (count ?? 0).toString(),
-                          style: const TextStyle(
+                                      child: Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            }),
+                          )
+                        : hasError
+                        ? Icon(
+                            Icons.error_outline,
                             color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
+                            size: 20,
+                          )
+                        : Text(
+                            (count ?? 0) > 99 ? '99+' : (count ?? 0).toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
+              ] else ...[
+                const SizedBox(height: 42),
+              ],
             ],
           ),
         ),

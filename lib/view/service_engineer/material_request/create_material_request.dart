@@ -386,7 +386,7 @@ class _CreateMaterialRequestState extends State<CreateMaterialRequest> {
             .createMaterialRequest(
               requiredByDate: _requiredByDate.toString(),
               materialRequestType: _selectedPurpose!,
-              company: 'Al Sahel',
+              company: 'AL SAHEL MEDICAL SUPPLIES TRADING LLC',
               setWarehouse: _selectedWarehouse!,
               items: items,
             );

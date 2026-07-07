@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:sahelmed_app/config/api_constant.dart';
@@ -16,7 +18,6 @@ class CreateMaterialRequestService {
     required String scheduleDate,
     required List<Map<String, dynamic>> items,
   }) async {
-    // 🔐 Read credentials (SAME as CreateLeadService)
     final apiKey = await _storage.read(key: 'api_key');
     final apiSecret = await _storage.read(key: 'api_secret');
     final sessionId = await _storage.read(key: 'session_id');
@@ -25,39 +26,66 @@ class CreateMaterialRequestService {
       throw Exception('Session expired. Please login again.');
     }
 
-    // ✅ Build headers
     final headers = <String, String>{'Content-Type': 'application/json'};
 
     if (apiKey != null && apiSecret != null) {
-      headers['Authorization'] = 'token $sessionId';
+      headers['Authorization'] = 'token $apiKey:$apiSecret';
     } else if (sessionId != null) {
       headers['Cookie'] = 'sid=$sessionId';
     }
 
-    // ✅ Create request
-    final request = http.Request('POST', Uri.parse(_url));
-    request.headers.addAll(headers);
-    request.body = json.encode({
+    final body = {
       "material_request_type": materialRequestType,
       "company": company,
       "set_warehouse": setWarehouse,
       "required_date": scheduleDate,
       "items": items,
-    });
+    };
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+    final request = http.Request('POST', Uri.parse(_url));
+    request.headers.addAll(headers);
+    request.body = jsonEncode(body);
+
+    // ================= REQUEST LOG =================
+    developer.log("========== API REQUEST ==========");
+    developer.log("URL: ${request.url}");
+    developer.log("Method: ${request.method}");
+    developer.log("Headers: ${request.headers}");
+    developer.log("Body: ${request.body}");
+    developer.log("=================================");
 
     try {
-      final decoded = json.decode(responseBody);
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      // ================= RESPONSE LOG =================
+      developer.log("========== API RESPONSE ==========");
+      developer.log("Status Code: ${response.statusCode}");
+      developer.log("Response Headers: ${response.headers}");
+      developer.log("Response Body: $responseBody");
+      developer.log("==================================");
+
+      if (responseBody.isEmpty) {
+        throw Exception('Empty response body');
+      }
+
+      final decoded = jsonDecode(responseBody);
 
       if (response.statusCode == 200) {
         return decoded;
       } else {
-        throw Exception(decoded['message'] ?? 'Something went wrong');
+        throw Exception(
+          decoded['message'] ??
+              'Request failed with status ${response.statusCode}',
+        );
       }
-    } catch (e) {
-      throw Exception('Invalid response format');
+    } catch (e, stackTrace) {
+      developer.log(
+        "========== API ERROR ==========",
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 }
