@@ -1,3 +1,3 @@
 class ApiConstants {
-  static const String baseUrl = "https://alsahel.tbo365.cloud/api/method/";
+  static const String baseUrl = "https://alsahel.tbocloud.in/api/method/";
 }
